@@ -21,11 +21,16 @@ from main import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.landing, name="landing"),
+    path('home',views.landing,name="landing"),
+    
     path('login/', views.login_view, name="login"),
     path('signup/', views.signup_view, name="signup"),
     path('logout/', views.logout_view, name="logout"),
     path('tnc/', views.tnc, name="tnc"),
     path('dashboard/',views.dashboard,name="dashboard"),
     path("manage-candidates/", views.manage_candidates, name="manage_candidates"),
-    path("create-job/", views.create_job, name="create_job"),
+    path("create-job/", views.create_job_page, name="create_job_page"),
+    path("create/", views.create_job, name="create_job"),
+    path('apply/<uuid:job_id>/', views.job_application, name='job_application'),
+    path("fetch_jobs/", views.fetch_jobs, name="fetch_jobs"),
 ]

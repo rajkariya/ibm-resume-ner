@@ -1,8 +1,42 @@
 {% extends 'template.html' %}
 {% load static %}
 {% block content %}
-<head><title>Login</title></head>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <title>Login</title></head>
 <body>
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.alert-message').forEach(el => el.style.display = 'none');
+        }, 5000);
+    </script>
+    <!-- Display Django messages at the very top -->
+    {% if messages %}
+        <div class="fixed top-0 left-0 w-full flex justify-center p-4 z-50">
+            <div class="w-full max-w-md">
+                {% for message in messages %}
+                    <div class="flex items-center p-4 mb-4 text-sm rounded-lg shadow-lg
+                        {% if message.tags == 'success' %}
+                            text-green-800 bg-green-100 dark:bg-green-200 dark:text-green-800
+                        {% elif message.tags == 'error' %}
+                            text-red-800 bg-red-100 dark:bg-red-200 dark:text-red-800
+                        {% elif message.tags == 'warning' %}
+                            text-yellow-800 bg-yellow-100 dark:bg-yellow-200 dark:text-yellow-800
+                        {% else %}
+                            text-blue-800 bg-blue-100 dark:bg-blue-200 dark:text-blue-800
+                        {% endif %}
+                    ">
+                        <svg class="flex-shrink-0 w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8ZM9 13h2v2H9v-2Zm0-8h2v6H9V5Z"/>
+                        </svg>
+                        <span class="font-medium">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
     <section class="bg-gray-50 dark:bg-gray-900">
         <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
             <div class="w-full bg-white rounded-lg shadow dark:border sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
@@ -10,15 +44,6 @@
                     <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
                         Sign in to your account
                     </h1>
-
-                    <!-- Display Django messages -->
-                    {% if messages %}
-                        <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800">
-                            {% for message in messages %}
-                                {{ message }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
 
                     <form class="space-y-4" method="POST" action="{% url 'login' %}">
                         {% csrf_token %}
@@ -50,5 +75,7 @@
             </div>
         </div>
     </section>
+
+    
 </body>
 {% endblock %}

@@ -1,5 +1,108 @@
 {% extends 'base.html' %}
 {% block content %}
-    <h1 class="text-2xl font-bold">📝 Create New Job</h1>
-    <p>Post and manage job openings.</p>
+
+<h1 class="text-2xl font-bold mb-4 text-center">📋 Job Listings</h1>
+<button class="btn btn-success mb-3" data-toggle="modal" data-target="#createJobModal">➕ Create New Job</button>
+
+<!-- Create Job Modal -->
+<div id="createJobModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📝 Create New Job</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createJobForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="title">Job Title:</label>
+                        <input type="text" id="title" name="title" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expires_at">Expiry Date:</label>
+                        <input type="datetime-local" id="expires_at" name="expires_at" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3 w-100">Create Job</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Job Table -->
+<div class="table-responsive">
+    <table id="jobTable" class="table table-bordered table-striped table-hover mt-4">
+        <thead class="thead-dark">
+            <tr>
+                <th>Title</th>
+                <th>Created At</th>
+                <th>Expires At</th>
+                <th>Applications</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="jobTableBody"></tbody>
+    </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        fetchJobs();
+
+        $("#createJobForm").on("submit", function (e) {
+            e.preventDefault();
+            $.ajax({
+                url: "/create/",
+                method: "POST",
+                data: $(this).serialize(),
+                success: function () {
+                    $("#createJobModal").modal("hide");
+                    $("#createJobForm")[0].reset();
+                    fetchJobs();
+                },
+                error: function () {
+                    alert("Failed to create job. Please try again.");
+                }
+            });
+        });
+    });
+
+    function fetchJobs() {
+        $.ajax({
+            url: "/fetch_jobs/",
+            method: "GET",
+            success: function (data) {
+                let tbody = $("#jobTableBody");
+                tbody.empty();
+
+                Object.values(data).forEach(jobSet => {
+                    Object.values(jobSet).forEach(job => {
+                        let expired = new Date(job.expires_at) < new Date() ? "text-danger" : "";
+                        tbody.append(`<tr class="${expired}">
+                            <td>${job.title}</td>
+                            <td>${new Date(job.created_at).toLocaleString()}</td>
+                            <td>${new Date(job.expires_at).toLocaleString()}</td>
+                            <td>${job.applications}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm">👁 View</button>
+                                <button class="btn btn-info btn-sm">📄 Applications</button>
+                            </td>
+                        </tr>`);
+                    });
+                });
+
+                $("#jobTable").DataTable().destroy();
+                $("#jobTable").DataTable();
+            },
+            error: function () {
+                alert("Failed to load jobs. Please try again.");
+            }
+        });
+    }
+</script>
+
 {% endblock %}
