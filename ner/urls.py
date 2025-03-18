@@ -33,4 +33,5 @@ urlpatterns = [
     path("create/", views.create_job, name="create_job"),
     path('apply/<uuid:job_id>/', views.job_application, name='job_application'),
     path("fetch_jobs/", views.fetch_jobs, name="fetch_jobs"),
+    path("job/<str:job_id>/", views.job_page, name="job_page"),
 ]

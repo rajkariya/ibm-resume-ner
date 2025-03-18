@@ -9,9 +9,11 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+from pymongo import MongoClient
 from pathlib import Path
-
+from urllib.parse import quote_plus
+user_name=quote_plus("admin")
+password=quote_plus("ctQBhrmzQ82DFM7j")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -84,7 +86,7 @@ LOGOUT_REDIRECT_URL = 'login'
 
 
 WSGI_APPLICATION = 'ner.wsgi.application'
-
+MCLIENT=MongoClient(f"mongodb+srv://{user_name}:{password}@odoohackathon.ej0m5ra.mongodb.net/?retryWrites=true&w=majority&appName=OdooHackathon")
 
 DATABASES = {
     'default': {
