@@ -1,5 +1,220 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <h1 class="text-2xl font-bold">🏠 Welcome to Your Dashboard</h1>
-    <p>Quick overview of your job portal.</p>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Overview Cards -->
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Jobs</h5>
+                    <h2 class="mb-0">{{ overview.total_jobs }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Active Applications</h5>
+                    <h2 class="mb-0">{{ overview.active_applications }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Reviews</h5>
+                    <h2 class="mb-0">{{ overview.pending_reviews }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Shortlisted Candidates</h5>
+                    <h2 class="mb-0">{{ overview.shortlisted_candidates }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Status Distribution Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Application Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications Over Time Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Applications Over Time</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="applicationsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for activity in recent_activity %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ activity.title }}</h6>
+                                <small>{{ activity.timestamp }}</small>
+                            </div>
+                            <p class="mb-1">{{ activity.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Jobs -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top Jobs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Job Title</th>
+                                    <th>Applications</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in top_jobs %}
+                                <tr>
+                                    <td>{{ job.title }}</td>
+                                    <td>{{ job.applications }}</td>
+                                    <td>
+                                        <span class="badge {% if job.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ job.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Distribution Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ status_distribution.labels|safe }},
+            datasets: [{
+                data: {{ status_distribution.values|safe }},
+                backgroundColor: [
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 15
+                    }
+                }
+            }
+        }
+    });
+
+    // Applications Over Time Chart
+    const appsCtx = document.getElementById('applicationsChart').getContext('2d');
+    new Chart(appsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ applications_over_time.dates|safe }},
+            datasets: [{
+                label: 'Applications',
+                data: {{ applications_over_time.values|safe }},
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

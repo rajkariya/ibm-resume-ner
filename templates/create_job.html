@@ -1,143 +1,241 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/create_job.css' %}">
+<style>
+    .job-card {
+        transition: transform 0.2s;
+    }
+    .job-card:hover {
+        transform: translateY(-5px);
+    }
+    .status-badge {
+        font-size: 0.8rem;
+        padding: 0.35em 0.65em;
+    }
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .date-column {
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<head>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-</head>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Job Listings</h2>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createJobModal">
+            <i class="bi bi-plus-circle me-2"></i>Create New Job
+        </button>
+    </div>
 
-<h1 class="text-center mb-4">📋 Job Listings</h1>
-<button id="create_job_btn" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#createJobModal">➕ Create New Job</button>
-
-<div id="createJobModal" class="modal fade" tabindex="-1" aria-labelledby="createJobModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createJobModalLabel">📝 Create New Job</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createJobForm">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="title" class="form-label">Job Title:</label>
-                            <input type="text" id="title" name="title" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="experience" class="form-label">Experience Needed:</label>
-                            <input type="text" id="experience" name="experience" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="salary_range" class="form-label">Salary Range:</label>
-                            <input type="text" id="salary_range" name="salary_range" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="interview_rounds" class="form-label">Number of Interview Rounds:</label>
-                            <input type="number" id="interview_rounds" name="interview_rounds" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="location" class="form-label">Job Location:</label>
-                        <input type="text" id="location" name="location" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Job Description:</label>
-                        <textarea id="description" name="description" class="form-control" rows="4" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Create Job</button>
-                </form>
+    <!-- Jobs Table -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Department</th>
+                            <th>Location</th>
+                            <th>Applications</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Expires</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                        <tr>
+                            <td>{{ job.title }}</td>
+                            <td>{{ job.department }}</td>
+                            <td>{{ job.location }}</td>
+                            <td>{{ job.applications }}</td>
+                            <td>
+                                <span class="badge {% if job.is_active %}bg-success{% else %}bg-danger{% endif %} status-badge">
+                                    {{ job.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </td>
+                            <td class="date-column">{{ job.created_at|date:"M d, Y" }}</td>
+                            <td class="date-column">{{ job.expires_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ job.job_url }}" class="btn btn-sm btn-info" target="_blank">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm {% if job.is_active %}btn-warning{% else %}btn-success{% endif %} toggle-status" 
+                                            data-job-id="{{ job.id }}" 
+                                            data-current-status="{{ job.is_active }}">
+                                        <i class="bi {% if job.is_active %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
-<div class="table-responsive">
-    <table id="jobTable" class="table table-bordered table-striped table-hover mt-4">
-        <thead class="table-dark">
-            <tr>
-                <th>Title</th>
-                <th>Created At</th>
-                <th>Expires At</th>
-                <th>Applications</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="jobTableBody"></tbody>
-    </table>
+<!-- Create Job Modal -->
+<div class="modal fade" id="createJobModal" tabindex="-1" aria-labelledby="createJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createJobModalLabel">Create New Job</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createJobForm" method="post" action="{% url 'create_job' %}">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="department" class="form-label">Department</label>
+                            <input type="text" class="form-control" id="department" name="department" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="expires_at" class="form-label">Application Deadline</label>
+                            <input type="date" class="form-control" id="expires_at" name="expires_at" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Job Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="requirements" class="form-label">Requirements</label>
+                        <textarea class="form-control" id="requirements" name="requirements" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="responsibilities" class="form-label">Responsibilities</label>
+                        <textarea class="form-control" id="responsibilities" name="responsibilities" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="benefits" class="form-label">Benefits</label>
+                        <textarea class="form-control" id="benefits" name="benefits" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="createJobForm" class="btn btn-primary">Create Job</button>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    $(document).ready(function () {
-        fetchJobs();
-    
-        $("#createJobForm").on("submit", function (e) {
-            e.preventDefault();
-            let csrfToken = $("input[name='csrfmiddlewaretoken']").val(); 
-            let jobData = {
-                title: $("#title").val(),
-                experience: $("#experience").val(),
-                salary_range: $("#salary_range").val(),
-                interview_rounds: $("#interview_rounds").val(),
-                location: $("#location").val(),
-                description: $("#description").val(),
-            };
-    
-            $.ajax({
-                url: "/create/",
-                method: "POST",
-                contentType: "application/json",
-                headers: { "X-CSRFToken": csrfToken }, 
-                data: JSON.stringify(jobData),
-                success: function () {
-                    alert("Added successfully");
-                    $("#createJobForm")[0].reset();
-                    {% comment %} $("#createJobModal").hide(); {% endcomment %}
-                    fetchJobs();
-                },
-                error: function () {
-                    alert("Failed to create job. Please try again.");
-                }
-            });
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    $('#jobsTable').DataTable({
+        order: [[5, 'desc']], // Sort by created date by default
+        pageLength: 10,
+        language: {
+            search: "Search jobs:",
+            lengthMenu: "Show _MENU_ jobs per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ jobs",
+            emptyTable: "No jobs found"
+        }
     });
-    
 
-    function fetchJobs() {
-        $.ajax({
-            url: "/fetch_jobs/",
-            method: "GET",
-            success: function (data) {
-                let tbody = $("#jobTableBody");
-                tbody.empty();
-    
-                Object.values(data).forEach(jobSet => {
-                    Object.values(jobSet).forEach(job => {
-                        tbody.append(`<tr>
-                            <td>${job.title}</td>
-                            <td>${new Date(job.created_at).toLocaleString()}</td>
-                            <td>${new Date(job.expires_at).toLocaleString()}</td>
-                            <td>${job.applications}</td>
-                            <td>
-                                <a href="/job/${job._id}" target="_blank" class="btn btn-primary btn-sm">👁 View</a>
-                            </td>
-                        </tr>`);
-                    });
+    // Handle status toggle
+    $('.toggle-status').click(function() {
+        const jobId = $(this).data('job-id');
+        const currentStatus = $(this).data('current-status');
+        const button = $(this);
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Do you want to ${currentStatus ? 'deactivate' : 'activate'} this job?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{% url 'toggle_job_status' %}",
+                    method: 'POST',
+                    data: {
+                        job_id: jobId,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update button appearance
+                            button.data('current-status', !currentStatus);
+                            button.toggleClass('btn-warning btn-success');
+                            button.find('i').toggleClass('bi-pause-fill bi-play-fill');
+                            
+                            // Update status badge
+                            const statusBadge = button.closest('tr').find('.status-badge');
+                            statusBadge.toggleClass('bg-success bg-danger');
+                            statusBadge.text(currentStatus ? 'Inactive' : 'Active');
+                            
+                            Swal.fire(
+                                'Success!',
+                                'Job status updated successfully.',
+                                'success'
+                            );
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                response.message || 'Failed to update job status.',
+                                'error'
+                            );
+                        }
+                    },
+                    error: function() {
+                        Swal.fire(
+                            'Error!',
+                            'An error occurred while updating the job status.',
+                            'error'
+                        );
+                    }
                 });
-    
-                if (!$.fn.DataTable.isDataTable("#jobTable")) {
-                    $("#jobTable").DataTable();
-                }
-            },
-            error: function () {
-                alert("Failed to load jobs. Please try again.");
             }
         });
-    }
-    
-</script>
+    });
 
+    // Form validation
+    $('#createJobForm').on('submit', function(e) {
+        const expiresAt = new Date($('#expires_at').val());
+        const today = new Date();
+        
+        if (expiresAt <= today) {
+            e.preventDefault();
+            Swal.fire(
+                'Error!',
+                'Expiration date must be in the future.',
+                'error'
+            );
+        }
+    });
+});
+</script>
 {% endblock %}

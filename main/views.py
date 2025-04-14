@@ -37,6 +37,7 @@ config={
 # Initialising database,auth and firebase for further use 
 firebase=pyrebase.initialize_app(config)
 authe = firebase.auth()
+storage=firebase.storage()
 db=firebase.database()
 
 logger = logging.getLogger(__name__)
@@ -127,49 +128,135 @@ def create_job(request):
 # Fetch the respective job listings.
 @login_required_firebase
 def fetch_jobs(request):
-   try:
-        # jobs_ref = db.child("jobs").get()
-        # print(jobs_ref)
-        # print(jobs_ref.val())
-        res=list(settings.MCLIENT['resume_ner']['job_listings'].find({"user":request.session['email']}))
-        return JsonResponse({"data":res},status=200)
-   except:
-       traceback.print_exc()
-       return JsonResponse({"msg":"Something went wrong"},status=401)
+    try:
+        user_email = request.session.get('email')
+        if not user_email:
+            return JsonResponse({"error": "User not authenticated"}, status=401)
+
+        # Get jobs from MongoDB
+        mongo_jobs = list(settings.MCLIENT['resume_ner']['job_listings'].find({"user": user_email}))
+        logger.info(f"Found {len(mongo_jobs)} jobs in MongoDB for user {user_email}")
+        
+        # Get jobs from Firebase
+        firebase_jobs = []
+        jobs_ref = db.child("jobs").get()
+        if jobs_ref.val():
+            for job_id, job_data in jobs_ref.val().items():
+                if job_data.get('user') == user_email:
+                    firebase_jobs.append({
+                        "_id": job_id,
+                        "title": job_data.get('title', ''),
+                        "description": job_data.get('description', ''),
+                        "created_at": job_data.get('created_at', ''),
+                        "expires_at": job_data.get('expires_at', ''),
+                        "applications": job_data.get('applications', 0),
+                        "user": job_data.get('user', ''),
+                        "is_active": job_data.get('is_active', True)
+                    })
+        logger.info(f"Found {len(firebase_jobs)} jobs in Firebase for user {user_email}")
+
+        # Combine and deduplicate jobs
+        all_jobs = []
+        seen_ids = set()
+
+        # Add MongoDB jobs
+        for job in mongo_jobs:
+            job_id = job.get('_id')
+            if job_id and job_id not in seen_ids:
+                all_jobs.append({
+                    "_id": job_id,
+                    "title": job.get('title', ''),
+                    "description": job.get('description', ''),
+                    "created_at": job.get('created_at', ''),
+                    "expires_at": job.get('expires_at', ''),
+                    "applications": job.get('applications', 0),
+                    "user": job.get('user', ''),
+                    "is_active": job.get('is_active', True)
+                })
+                seen_ids.add(job_id)
+
+        # Add Firebase jobs
+        for job in firebase_jobs:
+            job_id = job.get('_id')
+            if job_id and job_id not in seen_ids:
+                all_jobs.append(job)
+                seen_ids.add(job_id)
+
+        # Sort jobs by creation date (newest first)
+        all_jobs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        logger.info(f"Total unique jobs found: {len(all_jobs)}")
+
+        return JsonResponse({
+            "success": True,
+            "data": all_jobs
+        }, status=200)
+    except Exception as e:
+        logger.error(f"Error fetching jobs: {str(e)}\n{traceback.format_exc()}")
+        return JsonResponse({
+            "success": False,
+            "error": "Failed to fetch jobs",
+            "details": str(e)
+        }, status=500)
    
 @login_required_firebase
 def job_application(request, job_id):
     job = get_object_or_404(JobPosting, id=job_id)
 
     if now() > job.expires_at:
-        return render(request, "expired.html")  
+        return render(request, "expired.html")
 
     if request.method == "POST":
         form = JobApplicationForm(request.POST, request.FILES)
         if form.is_valid():
-            resume = request.FILES["resume"]
-            bucket = firebase.storage.bucket()
-            blob = bucket.blob(f"resumes/{job.id}/{resume.name}")
-            blob.upload_from_file(resume)
-            blob.make_public()
-            resume_url = blob.public_url
+            try:
+                # Generate a unique filename for the resume
+                resume = request.FILES["resume"]
+                file_extension = resume.name.split('.')[-1]
+                unique_filename = f"{uuid.uuid4()}.{file_extension}"
+                
+                # Create organized path structure in Firebase Storage
+                storage_path = f"jobs/{job_id}/resumes/{unique_filename}"
+                
+                # Upload file to Firebase Storage
+                storage.child(storage_path).put(resume)
+                resume_url = storage.child(storage_path).get_url(None)
 
-            application = form.save(commit=False)
-            application.job = job
-            application.resume_url = resume_url
-            application.save()
+                # Save application to Django database
+                application = form.save(commit=False)
+                application.job = job
+                application.resume_url = resume_url
+                application.save()
 
-            db.CHIL("applications").add({
-                "job_id": str(job.id),
-                "first_name": application.first_name,
-                "last_name": application.last_name,
-                "email": application.email,
-                "phone": application.phone,
-                "resume_url": resume_url,
-                "applied_at": now()
-            })
+                # Store application data in Firebase Realtime Database
+                application_data = {
+                    "job_id": str(job.id),
+                    "application_id": str(uuid.uuid4()),
+                    "first_name": application.first_name,
+                    "last_name": application.last_name,
+                    "email": application.email,
+                    "phone": application.phone,
+                    "resume_url": resume_url,
+                    "resume_filename": unique_filename,
+                    "applied_at": datetime.now().isoformat(),
+                    "status": "new"  # Track application status
+                }
 
-            return redirect("success_page")
+                # Store in Firebase under organized structure
+                db.child("applications").child(job_id).child(application_data["application_id"]).set(application_data)
+
+                # Update application count in job listing
+                job_ref = db.child("jobs").child(job_id)
+                current_job = job_ref.get()
+                if current_job.val():
+                    current_count = current_job.val().get("applications", 0)
+                    job_ref.update({"applications": current_count + 1})
+
+                messages.success(request, "Application submitted successfully!")
+                return redirect("success_page")
+            except Exception as e:
+                logger.error(f"Error in job application: {str(e)}")
+                messages.error(request, "An error occurred while submitting your application. Please try again.")
+                return render(request, "apply_job.html", {"form": form, "job": job})
     else:
         form = JobApplicationForm()
     return render(request, "apply_job.html", {"form": form, "job": job})
@@ -197,50 +284,239 @@ def signup_view(request):
 
 def logout_view(request):
     try:
+        # Clear the session
         request.session.flush()
-        logger.info("User logged out.")
-        return redirect("login")
+        
+        # Clear any existing messages
+        messages.clear(request)
+        
+        # Add success message
+        messages.success(request, "You have been successfully logged out.")
+        
+        logger.info("User logged out successfully.")
+        return redirect("landing")
     except Exception as e:
         logger.error(f"Error in logout_view: {e}\n{traceback.format_exc()}")
-        messages.error(request, "An unexpected error occurred.")
+        messages.error(request, "An error occurred during logout.")
         return redirect("landing")
 
 
+@login_required_firebase
 def get_applications(request, job_id):
-    job = JobPosting.objects.get(id=job_id)
-    applications = JobApplication.objects.filter(job=job).values(
-        "first_name", "last_name", "email", "phone", "resume_url"
-    )
-    return JsonResponse({"job_title": job.title, "applications": list(applications)})
-
-def dashboard(request):
     try:
-        if 'uid' in request.session:
-            return render(request, "dashboard.html")
-        else:
-            messages.error(request, "You need to log in first.")
-            return redirect("login")
+        # Get applications from MongoDB
+        applications = list(settings.MCLIENT['resume_ner']['applications'].find(
+            {"job_id": job_id},
+            {"_id": 1, "name": 1, "email": 1, "phone": 1, "resume_url": 1, "applied_at": 1, "status": 1}
+        ).sort("applied_at", -1))
+        
+        if not applications:
+            return JsonResponse({
+                "success": True,
+                "data": []
+            })
+        
+        # Get job details
+        job = settings.MCLIENT['resume_ner']['job_listings'].find_one(
+            {"_id": job_id},
+            {"title": 1}
+        )
+        
+        # Format applications data
+        formatted_applications = []
+        for app in applications:
+            formatted_applications.append({
+                "_id": str(app["_id"]),
+                "name": app.get("name", ""),
+                "email": app.get("email", ""),
+                "phone": app.get("phone", ""),
+                "resume_url": app.get("resume_url", ""),
+                "applied_at": app.get("applied_at", ""),
+                "status": app.get("status", "pending")
+            })
+        
+        return JsonResponse({
+            "success": True,
+            "data": formatted_applications
+        })
     except Exception as e:
-        logger.error(f"Error in dashboard view: {e}\n{traceback.format_exc()}")
-        messages.error(request, "An unexpected error occurred.")
-        return redirect("login")
-    
+        logger.error(f"Error fetching applications: {str(e)}")
+        return JsonResponse({
+            "success": False,
+            "error": "Failed to fetch applications",
+            "details": str(e)
+        }, status=500)
+
 @login_required_firebase
 def dashboard(request):
-    return render(request, "dashboard.html")
+    try:
+        user_email = request.session.get("email")
+        if not user_email:
+            messages.error(request, "User not authenticated")
+            return redirect("login")
+
+        # Get jobs from MongoDB
+        mongo_jobs = list(settings.MCLIENT['resume_ner']['job_listings'].find({"user": user_email}))
+        
+        # Get applications from MongoDB
+        applications = list(settings.MCLIENT['resume_ner']['applications'].find({
+            "job_id": {"$in": [job["_id"] for job in mongo_jobs]}
+        }))
+
+        # Calculate overview data
+        total_jobs = len(mongo_jobs)
+        active_applications = len(applications)
+        pending_reviews = len([app for app in applications if app.get("status") == "pending"])
+        shortlisted_candidates = len([app for app in applications if app.get("status") == "shortlisted"])
+
+        # Get status distribution
+        status_counts = {}
+        for app in applications:
+            status = app.get("status", "pending")
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        total_apps = len(applications)
+        status_distribution = {
+            "labels": list(status_counts.keys()),
+            "values": [round((count / total_apps) * 100) if total_apps > 0 else 0 for count in status_counts.values()]
+        }
+
+        # Get applications over time (last 30 days)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        daily_counts = {}
+        
+        for app in applications:
+            app_date = datetime.fromisoformat(app.get("applied_at"))
+            if app_date.tzinfo is None:
+                app_date = app_date.replace(tzinfo=timezone.utc)
+            if app_date >= thirty_days_ago:
+                date_str = app_date.strftime("%Y-%m-%d")
+                daily_counts[date_str] = daily_counts.get(date_str, 0) + 1
+
+        # Fill in missing dates with 0
+        for i in range(30):
+            date = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
+            if date not in daily_counts:
+                daily_counts[date] = 0
+
+        applications_over_time = {
+            "dates": sorted(daily_counts.keys()),
+            "values": [daily_counts[date] for date in sorted(daily_counts.keys())]
+        }
+
+        # Get recent activity
+        recent_activity = []
+        for app in sorted(applications, key=lambda x: x.get("applied_at"), reverse=True)[:5]:
+            recent_activity.append({
+                "type": "application",
+                "title": "New Application",
+                "description": f"New application from {app.get('name')}",
+                "timestamp": app.get("applied_at")
+            })
+
+        # Get top jobs
+        job_applications = {}
+        for app in applications:
+            job_id = app.get("job_id")
+            job_applications[job_id] = job_applications.get(job_id, 0) + 1
+
+        top_jobs = []
+        for job in mongo_jobs:
+            job_id = job.get("_id")
+            count = job_applications.get(job_id, 0)
+            top_jobs.append({
+                "title": job.get("title"),
+                "applications": count,
+                "status": "active" if job.get("is_active", True) else "inactive"
+            })
+        top_jobs.sort(key=lambda x: x["applications"], reverse=True)
+        top_jobs = top_jobs[:5]
+
+        # Add skill distribution data (sample data for now)
+        skill_distribution = {
+            "labels": ["Python", "JavaScript", "Java", "SQL", "React", "AWS"],
+            "values": [35, 25, 20, 15, 30, 18]
+        }
+
+        # Add application sources data (sample data for now)
+        application_sources = {
+            "labels": ["LinkedIn", "Company Website", "Referral", "Job Boards"],
+            "values": [40, 25, 20, 15]
+        }
+
+        context = {
+            "overview": {
+                "total_jobs": total_jobs,
+                "active_applications": active_applications,
+                "pending_reviews": pending_reviews,
+                "shortlisted_candidates": shortlisted_candidates
+            },
+            "status_distribution": status_distribution,
+            "applications_over_time": applications_over_time,
+            "recent_activity": recent_activity,
+            "top_jobs": top_jobs,
+            "skill_distribution": skill_distribution,
+            "application_sources": application_sources
+        }
+
+        return render(request, "dashboard.html", context)
+
+    except Exception as e:
+        logger.error(f"Error in dashboard view: {str(e)}\n{traceback.format_exc()}")
+        messages.error(request, "An error occurred while loading the dashboard.")
+        return redirect("login")
 
 @login_required_firebase
 def manage_candidates(request):
-    return render(request, "manage_candidates.html")
+    return render(request, "manage_applications.html")
 
 @login_required_firebase
 def create_job_page(request):
-    return render(request, "create_job.html")
+    try:
+        user_email = request.session.get("email")
+        if not user_email:
+            messages.error(request, "User not authenticated")
+            return redirect("login")
 
-def logout_view(request):
-    request.session.flush()
-    return redirect("login")
+        # Get jobs from MongoDB
+        mongo_jobs = list(settings.MCLIENT['resume_ner']['job_listings'].find({"user": user_email}))
+        
+        # Process jobs data
+        jobs = []
+        for job in mongo_jobs:
+            # Convert MongoDB ObjectId to string
+            job_id = str(job.get("_id"))
+            # Convert date objects to strings
+            created_at = job.get("created_at", {})
+            if isinstance(created_at, dict) and "$date" in created_at:
+                created_at = created_at["$date"]
+            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
+            
+            expires_at = job.get("expires_at", "")
+            if expires_at:
+                expires_at = datetime.fromisoformat(expires_at).strftime("%Y-%m-%d %H:%M:%S")
+            
+            jobs.append({
+                "id": job_id,  # Use 'id' instead of '_id'
+                "title": job.get("title", ""),
+                "department": job.get("department", ""),
+                "location": job.get("location", ""),
+                "applications": job.get("applications", 0),
+                "is_active": job.get("is_active", True),
+                "created_at": created_at,
+                "expires_at": expires_at,
+                "job_url": job.get("job_url", "")
+            })
 
+        context = {
+            "jobs": jobs
+        }
+        return render(request, "create_job.html", context)
+
+    except Exception as e:
+        logger.error(f"Error in create_job_page: {str(e)}\n{traceback.format_exc()}")
+        messages.error(request, "An error occurred while loading the page.")
+        return redirect("dashboard")
 
 def job_page(request, job_id):
     job = settings.MCLIENT['resume_ner']['job_listings'].find_one({"_id": job_id})
@@ -249,7 +525,6 @@ def job_page(request, job_id):
         return HttpResponse("Job not found.", status=404)
 
     try:
-        # Convert the ISO 8601 string to a datetime object (with timezone awareness)
         expires_at = parser.isoparse(job["expires_at"])
     except ValueError:
         return HttpResponse("Invalid date format in database.", status=500)
@@ -261,29 +536,333 @@ def job_page(request, job_id):
     return render(request, "job_detail.html", {"job": job})
 
 
-def upload_resume(file, filename):
-    """Upload resume to Firebase Storage"""
-    bucket = firebase.storage.bucket()
-    blob = bucket.blob(f"resumes/{filename}")
-    blob.upload_from_file(file)
-    return blob.public_url
+def upload_resume(file, job_id, filename):
+    """Upload resume to Firebase Storage with proper path structure"""
+    try:
+        # Create organized path structure
+        storage_path = f"jobs/{job_id}/resumes/{filename}"
+        
+        # Upload to Firebase Storage
+        # First, read the file content and reset the file pointer
+        file_content = file.read()
+        file.seek(0)  # Reset file pointer for potential future reads
+        
+        # Upload the file content
+        storage.child(storage_path).put(file_content)
+        
+        # Get the public URL
+        resume_url = storage.child(storage_path).get_url(None)
+        return resume_url
+    except Exception as e:
+        logger.error(f"Error uploading resume: {str(e)}")
+        raise
 
+@login_required_firebase
 def submit_application(request):
-    if request.method == "POST":
-        name = request.POST["name"]
-        email = request.POST["email"]
-        resume_file = request.FILES["resume"]
-        
-        # Upload resume to Firebase
-        resume_url = upload_resume(resume_file, f"{uuid.uuid4()}.pdf")
-        
-        # Store in MongoDB
-        db.applications.insert_one({
-            "name": name,
-            "email": email,
-            "resume_url": resume_url,
-            "job_id": request.POST["job_id"],
-            "submitted_at": now(),
-        })
+    try:
+        if request.method == "POST":
+            job_id = request.POST.get("job_id")
+            name = request.POST.get("name")
+            email = request.POST.get("email")
+            phone = request.POST.get("phone")
+            resume_file = request.FILES.get("resume")
+            
+            if not all([job_id, name, email, phone, resume_file]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+            
+            # Generate unique filename
+            file_extension = resume_file.name.split('.')[-1]
+            unique_filename = f"{uuid.uuid4()}.{file_extension}"
+            
+            try:
+                # Upload resume to Firebase Storage
+                storage_path = f"jobs/{job_id}/resumes/{unique_filename}"
+                storage.child(storage_path).put(resume_file)
+                resume_url = storage.child(storage_path).get_url(None)
+                
+                # Create application data
+                application_data = {
+                    "_id": str(uuid.uuid4()),
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                    "resume_url": resume_url,
+                    "resume_filename": unique_filename,
+                    "job_id": job_id,
+                    "applied_at": datetime.now().isoformat(),
+                    "status": "pending",
+                    "updated_at": datetime.now().isoformat()
+                }
+                
+                # Store in MongoDB
+                settings.MCLIENT['resume_ner']['applications'].insert_one(application_data)
+                
+                # Update application count in job listing
+                settings.MCLIENT['resume_ner']['job_listings'].update_one(
+                    {"_id": job_id},
+                    {"$inc": {"applications": 1}}
+                )
+                
+                return JsonResponse({
+                    "success": True,
+                    "message": "Application submitted successfully!",
+                    "application_id": application_data["_id"]
+                })
+            except Exception as upload_error:
+                logger.error(f"Error during resume upload: {str(upload_error)}")
+                return JsonResponse({
+                    "error": "Failed to upload resume",
+                    "details": str(upload_error)
+                }, status=500)
+            
+    except Exception as e:
+        logger.error(f"Error in submit_application: {str(e)}")
+        return JsonResponse({
+            "error": "Failed to submit application",
+            "details": str(e)
+        }, status=500)
 
-        return JsonResponse({"message": "Application submitted!"})
+@login_required_firebase
+def update_application_status(request, application_id):
+    try:
+        if request.method == "POST":
+            new_status = request.POST.get("status")
+            
+            if not new_status:
+                return JsonResponse({"error": "Missing status field"}, status=400)
+            
+            # Update status in MongoDB
+            result = settings.MCLIENT['resume_ner']['applications'].update_one(
+                {"_id": application_id},
+                {
+                    "$set": {
+                        "status": new_status,
+                        "updated_at": datetime.now().isoformat()
+                    }
+                }
+            )
+            
+            if result.modified_count > 0:
+                return JsonResponse({
+                    "success": True,
+                    "message": "Status updated successfully"
+                })
+            else:
+                return JsonResponse({
+                    "success": False,
+                    "error": "Application not found"
+                }, status=404)
+            
+    except Exception as e:
+        logger.error(f"Error updating application status: {str(e)}")
+        return JsonResponse({
+            "success": False,
+            "error": "Failed to update status",
+            "details": str(e)
+        }, status=500)
+
+@login_required_firebase
+def manage_applications(request):
+    try:
+        return render(request, "manage_applications.html")
+    except Exception as e:
+        logger.error(f"Error in manage_applications view: {str(e)}\n{traceback.format_exc()}")
+        messages.error(request, "An error occurred while loading the page.")
+        return redirect("dashboard")
+
+@login_required_firebase
+def get_dashboard_data(request):
+    try:
+        user_email = request.session.get("email")
+        if not user_email:
+            return JsonResponse({"success": False, "error": "User not authenticated"}, status=401)
+
+        logger.info(f"Fetching dashboard data for user: {user_email}")
+
+        # Get jobs from MongoDB
+        mongo_jobs = list(settings.MCLIENT['resume_ner']['job_listings'].find({"user": user_email}))
+        logger.info(f"Found {len(mongo_jobs)} jobs in MongoDB")
+
+        # Get applications from MongoDB
+        applications = list(settings.MCLIENT['resume_ner']['applications'].find({
+            "job_id": {"$in": [job["_id"] for job in mongo_jobs]}
+        }))
+        logger.info(f"Found {len(applications)} applications")
+
+        # Calculate overview data
+        total_jobs = len(mongo_jobs)
+        active_applications = len(applications)
+        pending_reviews = len([app for app in applications if app.get("status") == "pending"])
+        shortlisted_candidates = len([app for app in applications if app.get("status") == "shortlisted"])
+
+        # Get status distribution
+        status_counts = {}
+        for app in applications:
+            status = app.get("status", "pending")
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+        total_apps = len(applications)
+        status_distribution = {
+            "labels": list(status_counts.keys()),
+            "values": [round((count / total_apps) * 100) if total_apps > 0 else 0 for count in status_counts.values()]
+        }
+
+        # Get applications over time (last 30 days)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        daily_counts = {}
+        
+        for app in applications:
+            app_date = datetime.fromisoformat(app.get("applied_at"))
+            if app_date.tzinfo is None:
+                app_date = app_date.replace(tzinfo=timezone.utc)
+            if app_date >= thirty_days_ago:
+                date_str = app_date.strftime("%Y-%m-%d")
+                daily_counts[date_str] = daily_counts.get(date_str, 0) + 1
+
+        # Fill in missing dates with 0
+        for i in range(30):
+            date = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
+            if date not in daily_counts:
+                daily_counts[date] = 0
+
+        applications_over_time = {
+            "dates": sorted(daily_counts.keys()),
+            "values": [daily_counts[date] for date in sorted(daily_counts.keys())]
+        }
+
+        # Get recent activity
+        recent_activity = []
+        for app in sorted(applications, key=lambda x: x.get("applied_at"), reverse=True)[:5]:
+            recent_activity.append({
+                "type": "application",
+                "title": "New Application",
+                "description": f"New application from {app.get('name')}",
+                "timestamp": app.get("applied_at")
+            })
+
+        # Get top jobs
+        job_applications = {}
+        for app in applications:
+            job_id = app.get("job_id")
+            job_applications[job_id] = job_applications.get(job_id, 0) + 1
+
+        top_jobs = []
+        for job in mongo_jobs:
+            job_id = job.get("_id")
+            count = job_applications.get(job_id, 0)
+            top_jobs.append({
+                "title": job.get("title"),
+                "applications": count,
+                "status": "active" if job.get("is_active", True) else "inactive"
+            })
+        top_jobs.sort(key=lambda x: x["applications"], reverse=True)
+        top_jobs = top_jobs[:5]
+
+        # Add skill distribution data (sample data for now)
+        skill_distribution = {
+            "labels": ["Python", "JavaScript", "Java", "SQL", "React", "AWS"],
+            "values": [35, 25, 20, 15, 30, 18]
+        }
+
+        # Add application sources data (sample data for now)
+        application_sources = {
+            "labels": ["LinkedIn", "Company Website", "Referral", "Job Boards"],
+            "values": [40, 25, 20, 15]
+        }
+
+        response_data = {
+            "success": True,
+            "data": {
+                "overview": {
+                    "total_jobs": total_jobs,
+                    "active_applications": active_applications,
+                    "pending_reviews": pending_reviews,
+                    "shortlisted_candidates": shortlisted_candidates
+                },
+                "status_distribution": status_distribution,
+                "applications_over_time": applications_over_time,
+                "recent_activity": recent_activity,
+                "top_jobs": top_jobs,
+                "skill_distribution": skill_distribution,
+                "application_sources": application_sources
+            }
+        }
+
+        logger.info(f"Dashboard data prepared successfully: {response_data}")
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        logger.error(f"Error in get_dashboard_data: {str(e)}\n{traceback.format_exc()}")
+        return JsonResponse({
+            "success": False,
+            "error": "Failed to fetch dashboard data",
+            "details": str(e)
+        }, status=500)
+
+@login_required_firebase
+def toggle_job_status(request):
+    if request.method == 'POST':
+        try:
+            job_id = request.POST.get('job_id')
+            user_email = request.session.get('email')
+            
+            if not job_id or not user_email:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Missing required parameters'
+                })
+            
+            # Check if job exists in MongoDB
+            mongo_job = settings.MCLIENT['resume_ner']['job_listings'].find_one({
+                "_id": job_id,
+                "user": user_email
+            })
+            
+            # Check if job exists in Firebase
+            firebase_job = db.child("jobs").child(job_id).get()
+            
+            if not mongo_job and not firebase_job.val():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Job not found'
+                })
+            
+            # Check if job has expired
+            expires_at = mongo_job.get('expires_at') if mongo_job else firebase_job.val().get('expires_at')
+            if expires_at:
+                expires_at = datetime.fromisoformat(expires_at)
+                if expires_at < datetime.now(timezone.utc):
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Cannot toggle status of expired job'
+                    })
+            
+            # Toggle status in MongoDB
+            if mongo_job:
+                current_status = mongo_job.get('is_active', True)
+                settings.MCLIENT['resume_ner']['job_listings'].update_one(
+                    {"_id": job_id},
+                    {"$set": {"is_active": not current_status}}
+                )
+            
+            # Toggle status in Firebase
+            if firebase_job.val():
+                current_status = firebase_job.val().get('is_active', True)
+                db.child("jobs").child(job_id).update({"is_active": not current_status})
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Job status updated successfully'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error toggling job status: {str(e)}\n{traceback.format_exc()}")
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    })

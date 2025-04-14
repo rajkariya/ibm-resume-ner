@@ -1,59 +1,199 @@
-{% extends 'template.html' %}
-{% load static %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Signup</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Ner Resume</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    {% load static %}
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: white !important;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .signup-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+
+        .signup-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .signup-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .signup-header img {
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .signup-header h1 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .signup-header p {
+            color: #666;
+            margin-bottom: 0;
+        }
+
+        .form-control {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .signup-card {
+                padding: 2rem;
+                margin: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <section class="bg-gray-50 dark:bg-gray-900">
-        <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-            <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-                <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-                    <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                        Create an account
-                    </h1>
-                    {% if messages %}
-                        <div class="messages">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="{% static 'logo.png' %}" alt="Ner Resume Logo">
+                Ner Resume
+            </a>
+        </div>
+    </nav>
+
+    <!-- Signup Form -->
+    <div class="signup-container">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="signup-card">
+                        <div class="signup-header">
+                            <img src="{% static 'logo.png' %}" alt="Ner Resume Logo">
+                            <h1>Create Account</h1>
+                            <p>Join Ner Resume to streamline your hiring process</p>
+                        </div>
+
+                        {% if messages %}
                             {% for message in messages %}
-                                <p class="text-sm text-red-500">{{ message }}</p>
+                                <div class="alert alert-{{ message.tags }}">
+                                    {{ message }}
+                                </div>
                             {% endfor %}
-                        </div>
-                    {% endif %}
-                    <form class="space-y-4 md:space-y-6" action="{% url 'signup' %}" method="POST">
-                        {% csrf_token %}
-                        <div>
-                            <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your email</label>
-                            <input type="email" name="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="name@company.com" required>
-                        </div>
-                        <div>
-                            <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-                            <input type="password" name="password" id="password" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
-                        </div>
-                        <div>
-                            <label for="password2" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirm password</label>
-                            <input type="password" name="password2" id="password2" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
-                        </div>
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                <input id="terms" aria-describedby="terms" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800" required>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'signup' %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
                             </div>
-                            <div class="ml-3 text-sm">
-                                <label for="terms" class="font-light text-gray-500 dark:text-gray-300">I accept the 
-                                    <a href="{% url 'tnc' %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Terms and Conditions</a>
-                                </label>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
                             </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Create Account</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-3">
+                            <p class="mb-0">Already have an account? <a href="{% url 'login' %}" class="text-primary">Sign in</a></p>
                         </div>
-                        <button type="submit" class="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
-                            Create an account
-                        </button>
-                        <p class="text-sm font-light text-gray-500 dark:text-gray-400">
-                            Already have an account? 
-                            <a href="{% url 'login' %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Login here</a>
-                        </p>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0">&copy; 2024 Ner Resume. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-{% endblock %}
+</html>

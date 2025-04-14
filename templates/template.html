@@ -1,253 +1,251 @@
-{% comment %} {% load static %}
-{% load tailwind_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Named Entity Recognition{% endblock %}</title>
+    <title>{% block title %}Ner Resume{% endblock %}</title>
     
-    {% tailwind_css %}
-
-    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <script src="https://kit.fontawesome.com/6d339229ba.js" crossorigin="anonymous"></script>
-
     <style>
-        html {
-            scroll-behavior: smooth;
-            scroll-padding-top: 0px;
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #1a252f;
+            --accent-color: #3498db;
+            --text-color: #2c3e50;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #6c757d;
         }
-        * { transition: 0.3s; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-color);
+            background-color: var(--light-gray);
+        }
+
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px 0;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--primary-color) !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .nav-link {
+            color: var(--text-color) !important;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: 8px 15px !important;
+            border-radius: 5px;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+            background-color: var(--light-gray);
+        }
+
+        .nav-link.active {
+            color: var(--accent-color) !important;
+            background-color: var(--light-gray);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 8px 20px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--accent-color);
+        }
+
+        .section-title {
+            position: relative;
+            margin-bottom: 40px;
+            padding-bottom: 15px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background-color: var(--accent-color);
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            height: 100%;
+        }
+
+        .sidebar .nav-link {
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
     </style>
+    
+    {% block extra_css %}{% endblock %}
 </head>
-
-<body class="bg-gray-100">
-    <header id="header" class="text-gray-400 bg-gray-900 body-font">
-        <div class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
-            <a href="{% url 'landing' %}" class="flex title-font font-medium items-center text-white mb-4 md:mb-0">
-                <img src="{% static 'images/logo.png' %}" alt="Logo" class="h-10 w-10">
-                <span class="ml-3 text-xl">Named Entity Recognition</span>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'landing' %}">
+                <img src="{% static 'logo.png' %}" alt="Ner Resume Logo">
+                Ner Resume
             </a>
-            <nav class="md:ml-auto flex flex-wrap items-center text-base justify-center">
-                <a class="mr-5 hover:text-white" href="#">First Link</a>
-                <a class="mr-5 hover:text-white" href="#">Second Link</a>
-                <a class="mr-5 hover:text-white" href="#">Third Link</a>
-                <a class="mr-5 hover:text-white" href="#">Fourth Link</a>
-            </nav>
-
-            {% if user.is_authenticated %}
-                <a href="{% url 'logout' %}">
-                    <button class="bg-red-600 hover:bg-red-500 text-white font-bold py-1 px-3 rounded ml-2">
-                        Logout
-                    </button>
-                </a>
-            {% else %}
-                <a href="{% url 'login' %}">
-                    <button class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded ml-2">
-                        Login
-                    </button>
-                </a>
-                <a href="{% url 'signup' %}">
-                    <button class="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded ml-2">
-                        Signup
-                    </button>
-                </a>
-            {% endif %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if request.session.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="{% url 'dashboard' %}">
+                                <i class="bi bi-speedometer2"></i>Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/create-job/' %}active{% endif %}" href="{% url 'create_job' %}">
+                                <i class="bi bi-plus-circle"></i>Create Job
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/manage-applications/' %}active{% endif %}" href="{% url 'manage_applications' %}">
+                                <i class="bi bi-people"></i>Manage Applications
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'logout' %}">
+                                <i class="bi bi-box-arrow-right"></i>Logout
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/login/' %}active{% endif %}" href="{% url 'login' %}">
+                                <i class="bi bi-box-arrow-in-right"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/signup/' %}active{% endif %}" href="{% url 'signup' %}">
+                                <i class="bi bi-person-plus"></i>Sign Up
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-    </header>
+    </nav>
 
-    <!-- ✅ CONTENT BLOCK -->
-    <main class="">
+    <!-- Main Content -->
+    <main>
         {% block content %}{% endblock %}
     </main>
 
-    <!-- ✅ FOOTER SECTION -->
-    <footer class="text-gray-400 bg-gray-900 body-font mt-10">
-        <div class="container px-5 py-10 mx-auto flex md:items-center lg:items-start md:flex-row flex-wrap flex-col">
-            <div class="w-64 flex-shrink-0 mx-auto text-center md:text-left">
-                <a href="#header" class="flex title-font font-medium items-center justify-center md:justify-start text-white">
-                    <img src="{% static 'images/logo.png' %}" alt="Logo" class="h-8 w-8">
-                    <span class="ml-3 text-xl">Named Entity Recognition</span>
-                </a>
-                <p class="mt-2 text-sm text-gray-500">Your project description here.</p>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Ner Resume</h5>
+                    <p>Streamline your hiring process with AI-powered resume parsing and candidate management.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'landing' %}">Home</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#about">About Us</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-envelope me-2"></i> support@nerresume.com</li>
+                        <li><i class="bi bi-telephone me-2"></i> +1 (123) 456-7890</li>
+                    </ul>
+                </div>
             </div>
-        </div>
-
-        <div class="bg-gray-800 bg-opacity-75">
-            <div class="container mx-auto py-4 px-5 flex flex-wrap flex-col sm:flex-row">
-                <p class="text-gray-400 text-sm text-center sm:text-left">
-                    © 2025 NER Team — 
-                    <a href="#" rel="noopener noreferrer" class="text-gray-500 ml-1">Named Entity Recognition</a>
-                </p>
-                <span class="inline-flex sm:ml-auto sm:mt-0 mt-2 justify-center sm:justify-start">
-                    <a class="text-gray-400 hover:text-white">
-                        <i class="fab fa-facebook-f"></i>
-                    </a>
-                    <a class="ml-3 text-gray-400 hover:text-white">
-                        <i class="fab fa-twitter"></i>
-                    </a>
-                    <a class="ml-3 text-gray-400 hover:text-white">
-                        <i class="fab fa-instagram"></i>
-                    </a>
-                    <a class="ml-3 text-gray-400 hover:text-white">
-                        <i class="fab fa-linkedin-in"></i>
-                    </a>
-                </span>
+            <hr class="mt-4 mb-4">
+            <div class="text-center">
+                <p>&copy; 2024 Ner Resume. All rights reserved.</p>
             </div>
         </div>
     </footer>
-</body>
-</html> {% endcomment %}
 
-{% load static %}
-{% load static tailwind_tags %}
-<html>
-    <head>
-        <meta http-equiv="X-UA-Compatible" content="IE=7">
-        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-        <link rel="shortcut icon" href="{% static 'logotr_1024.png' %}" type="image/x-icon">
-        <link rel="stylesheet" href="{% static 'style.css' %}">
-        <script src="https://kit.fontawesome.com/6d339229ba.js" crossorigin="anonymous"></script>
-        <style>
-            html{
-                scroll-behavior: smooth;
-                scroll-padding-top: 0px;
-            }
-            *{transition: 0.3s;}
-        </style>
-        {% tailwind_css %}
-    </head>
-    <body>
-        <header id="header" class="text-gray-400 bg-gray-900 body-font">
-            <div class="container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center">
-              <a href="{% url 'landing' %}" class="flex title-font font-medium items-center text-white mb-4 md:mb-0">
-                <img src="{% static 'logotr_64.png' %}" alt="Logo Here">
-                <span class="ml-3 text-xl">Named Entity Recognition</span>
-              </a>
-              <nav class="md:ml-auto flex flex-wrap items-center text-base justify-center">
-                <a class="mr-5 hover:text-white">First Link</a>
-                <a class="mr-5 hover:text-white">Second Link</a>
-                <a class="mr-5 hover:text-white">Third Link</a>
-                <a class="mr-5 hover:text-white">Fourth Link</a>
-              </nav>
-              <a href="{% url 'login' %}"><button class="inline-flex items-center bg-primary-800 border-0 py-1 px-3 focus:outline-none hover:bg-primary-700 rounded text-white mt-4 md:mt-0">Login</button></a>
-              <a href="{% url 'signup' %}"><button class="inline-flex items-center bg-primary-800 border-0 py-1 px-3 focus:outline-none hover:bg-primary-700 rounded text-white mt-4 md:mt-0">Signup</button></a>
-            </div>
-          </header>
-        {% block content %}
-        {% endblock %}
-        <footer class="text-gray-400 bg-gray-900 body-font">
-            <div class="container px-5 py-24 mx-auto flex md:items-center lg:items-start md:flex-row md:flex-nowrap flex-wrap flex-col">
-              <div class="w-64 flex-shrink-0 md:mx-0 mx-auto text-center md:text-left">
-                <a href="#header" class="flex title-font font-medium items-center md:justify-start justify-center text-white">
-                  <img src="{% static 'logo_64.png' %}" alt="Logo Here">
-                  <span class="ml-3 text-xl">Named Entity Recognition</span>
-                </a>
-                <p class="mt-2 text-sm text-gray-500">Empowering innovation and efficiency</p>
-              </div>
-              <div class="flex-grow flex flex-wrap md:pl-20 -mb-10 md:mt-0 mt-10 md:text-left text-center">
-                <div class="lg:w-1/4 md:w-1/2 w-full px-4">
-                  <h2 class="title-font font-medium text-white tracking-widest text-sm mb-3">CATEGORIES</h2>
-                  <nav class="list-none mb-10">
-                    <li>
-                      <a class="text-gray-400 hover:text-white">First Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Second Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Third Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Fourth Link</a>
-                    </li>
-                  </nav>
-                </div>
-                <div class="lg:w-1/4 md:w-1/2 w-full px-4">
-                  <h2 class="title-font font-medium text-white tracking-widest text-sm mb-3">CATEGORIES</h2>
-                  <nav class="list-none mb-10">
-                    <li>
-                      <a class="text-gray-400 hover:text-white">First Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Second Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Third Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Fourth Link</a>
-                    </li>
-                  </nav>
-                </div>
-                <div class="lg:w-1/4 md:w-1/2 w-full px-4">
-                  <h2 class="title-font font-medium text-white tracking-widest text-sm mb-3">CATEGORIES</h2>
-                  <nav class="list-none mb-10">
-                    <li>
-                      <a class="text-gray-400 hover:text-white">First Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Second Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Third Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Fourth Link</a>
-                    </li>
-                  </nav>
-                </div>
-                <div class="lg:w-1/4 md:w-1/2 w-full px-4">
-                  <h2 class="title-font font-medium text-white tracking-widest text-sm mb-3">CATEGORIES</h2>
-                  <nav class="list-none mb-10">
-                    <li>
-                      <a class="text-gray-400 hover:text-white">First Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Second Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Third Link</a>
-                    </li>
-                    <li>
-                      <a class="text-gray-400 hover:text-white">Fourth Link</a>
-                    </li>
-                  </nav>
-                </div>
-              </div>
-            </div>
-            <div class="bg-gray-800 bg-opacity-75">
-              <div class="container mx-auto py-4 px-5 flex flex-wrap flex-col sm:flex-row">
-                <p class="text-gray-400 text-sm text-center sm:text-left">© 2025 NER Team —
-                  <a href="https://twitter.com/knyttneve" rel="noopener noreferrer" class="text-gray-500 ml-1" target="_blank">Named Entity Recognition</a>
-                </p>
-                <span class="inline-flex sm:ml-auto sm:mt-0 mt-2 justify-center sm:justify-start">
-                  <a class="text-gray-400">
-                    <svg fill="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="w-5 h-5" viewBox="0 0 24 24">
-                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
-                    </svg>
-                  </a>
-                  <a class="ml-3 text-gray-400">
-                    <svg fill="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="w-5 h-5" viewBox="0 0 24 24">
-                      <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path>
-                    </svg>
-                  </a>
-                  <a class="ml-3 text-gray-400">
-                    <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="w-5 h-5" viewBox="0 0 24 24">
-                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
-                      <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01"></path>
-                    </svg>
-                  </a>
-                  <a class="ml-3 text-gray-400">
-                    <svg fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="0" class="w-5 h-5" viewBox="0 0 24 24">
-                      <path stroke="none" d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"></path>
-                      <circle cx="4" cy="4" r="2" stroke="none"></circle>
-                    </svg>
-                  </a>
-                </span>
-              </div>
-            </div>
-          </footer>
-    </body>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
 </html>
