@@ -41,4 +41,5 @@ urlpatterns = [
     path("get_dashboard_data/", views.get_dashboard_data, name="get_dashboard_data"),
     path('fetch-jobs/', views.fetch_jobs, name='fetch_jobs'),
     path('toggle-job-status/', views.toggle_job_status, name='toggle_job_status'),
+    path('company-details/', views.company_details, name='company_details'),
 ]

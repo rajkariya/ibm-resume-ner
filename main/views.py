@@ -1,5 +1,4 @@
 from datetime import datetime , timedelta
-import json
 import traceback
 import uuid
 from arrow import now
@@ -24,7 +23,7 @@ from .models import JobApplication, JobPosting
 from .forms import JobApplicationForm
 from pymongo import UpdateOne
 from dateutil import parser 
-# from firebase_admin import credentials, storage, firestore
+
 config={
 "apiKey": "AIzaSyCAofwa3iucIIYBau6w5L8nTe_S1haS3cw",
   "authDomain": "resume-ner-bdd15.firebaseapp.com",
@@ -34,7 +33,7 @@ config={
   "appId": "1:108689243009:web:70d246313b1c20a62cc680",
   "databaseURL":"https://resume-ner-bdd15-default-rtdb.asia-southeast1.firebasedatabase.app/"
 }
-# Initialising database,auth and firebase for further use 
+
 firebase=pyrebase.initialize_app(config)
 authe = firebase.auth()
 storage=firebase.storage()
@@ -91,53 +90,59 @@ def login_view(request):
 def create_job(request):
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
+            title = request.POST.get("title")
+            experience = request.POST.get("experience")
+            salary_range = request.POST.get("salary_range")
+            interview_rounds = request.POST.get("interview_rounds")
+            location = request.POST.get("location")
+            description = request.POST.get("description")
+            
+            if not all([title, experience, salary_range, interview_rounds, location, description]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
             job_id = str(uuid.uuid4())
             job_url = f"http://localhost:3000/job/{job_id}"
+            user_email = request.session.get("email", "unknown")
 
             job_data = {
                 "_id": job_id,
-                "title": data["title"],
-                "experience": data["experience"],
-                "salary_range": data["salary_range"],
-                "interview_rounds": data["interview_rounds"],
-                "location": data["location"],
-                "description": data["description"],
-                "created_at":datetime.now(timezone.utc).isoformat(),
-                "expires_at":(datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+                "title": title,
+                "experience": experience,
+                "salary_range": salary_range,
+                "interview_rounds": interview_rounds,
+                "location": location,
+                "description": description,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
                 "job_url": job_url,
                 "applications": 0,
-                "user": request.session.get("email", "unknown"),
-                "job_id":job_id
+                "user": user_email,
+                "job_id": job_id,
+                "is_active": True
             }
 
-            # Store in MongoDB
             settings.MCLIENT['resume_ner']['job_listings'].insert_one(job_data)
 
-            # Store in Firebase
             db.child("jobs").child(job_id).set(job_data)
 
             return JsonResponse({"success": True, "job_url": job_url})
         except Exception as e:
-            traceback.print_exc()
+            logger.error(f"Error creating job: {str(e)}\n{traceback.format_exc()}")
             return JsonResponse({"error": str(e)}, status=400)
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
-# Fetch the respective job listings.
 @login_required_firebase
 def fetch_jobs(request):
-    try:
+   try:
         user_email = request.session.get('email')
         if not user_email:
             return JsonResponse({"error": "User not authenticated"}, status=401)
 
-        # Get jobs from MongoDB
         mongo_jobs = list(settings.MCLIENT['resume_ner']['job_listings'].find({"user": user_email}))
         logger.info(f"Found {len(mongo_jobs)} jobs in MongoDB for user {user_email}")
         
-        # Get jobs from Firebase
         firebase_jobs = []
         jobs_ref = db.child("jobs").get()
         if jobs_ref.val():
@@ -151,15 +156,15 @@ def fetch_jobs(request):
                         "expires_at": job_data.get('expires_at', ''),
                         "applications": job_data.get('applications', 0),
                         "user": job_data.get('user', ''),
-                        "is_active": job_data.get('is_active', True)
+                        "is_active": job_data.get('is_active', True),
+                        "job_url": job_data.get('job_url', ''),
+                        "job_id": job_data.get('job_id', ''),
                     })
         logger.info(f"Found {len(firebase_jobs)} jobs in Firebase for user {user_email}")
 
-        # Combine and deduplicate jobs
         all_jobs = []
         seen_ids = set()
 
-        # Add MongoDB jobs
         for job in mongo_jobs:
             job_id = job.get('_id')
             if job_id and job_id not in seen_ids:
@@ -171,18 +176,18 @@ def fetch_jobs(request):
                     "expires_at": job.get('expires_at', ''),
                     "applications": job.get('applications', 0),
                     "user": job.get('user', ''),
-                    "is_active": job.get('is_active', True)
+                    "is_active": job.get('is_active', True),
+                    "job_url": job.get('job_url', ''),
+                    "job_id": job.get('job_id', ''),
                 })
                 seen_ids.add(job_id)
 
-        # Add Firebase jobs
         for job in firebase_jobs:
             job_id = job.get('_id')
             if job_id and job_id not in seen_ids:
                 all_jobs.append(job)
                 seen_ids.add(job_id)
 
-        # Sort jobs by creation date (newest first)
         all_jobs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         logger.info(f"Total unique jobs found: {len(all_jobs)}")
 
@@ -190,7 +195,7 @@ def fetch_jobs(request):
             "success": True,
             "data": all_jobs
         }, status=200)
-    except Exception as e:
+   except Exception as e:
         logger.error(f"Error fetching jobs: {str(e)}\n{traceback.format_exc()}")
         return JsonResponse({
             "success": False,
@@ -203,13 +208,12 @@ def job_application(request, job_id):
     job = get_object_or_404(JobPosting, id=job_id)
 
     if now() > job.expires_at:
-        return render(request, "expired.html")
+        return render(request, "expired.html")  
 
     if request.method == "POST":
         form = JobApplicationForm(request.POST, request.FILES)
         if form.is_valid():
             try:
-                # Generate a unique filename for the resume
                 resume = request.FILES["resume"]
                 file_extension = resume.name.split('.')[-1]
                 unique_filename = f"{uuid.uuid4()}.{file_extension}"
@@ -250,7 +254,6 @@ def job_application(request, job_id):
                 if current_job.val():
                     current_count = current_job.val().get("applications", 0)
                     job_ref.update({"applications": current_count + 1})
-
                 messages.success(request, "Application submitted successfully!")
                 return redirect("success_page")
             except Exception as e:
@@ -478,40 +481,32 @@ def create_job_page(request):
             messages.error(request, "User not authenticated")
             return redirect("login")
 
-        # Get jobs from MongoDB
         mongo_jobs = list(settings.MCLIENT['resume_ner']['job_listings'].find({"user": user_email}))
-        
-        # Process jobs data
         jobs = []
         for job in mongo_jobs:
-            # Convert MongoDB ObjectId to string
-            job_id = str(job.get("_id"))
-            # Convert date objects to strings
-            created_at = job.get("created_at", {})
-            if isinstance(created_at, dict) and "$date" in created_at:
-                created_at = created_at["$date"]
-            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
-            
-            expires_at = job.get("expires_at", "")
-            if expires_at:
-                expires_at = datetime.fromisoformat(expires_at).strftime("%Y-%m-%d %H:%M:%S")
-            
-            jobs.append({
-                "id": job_id,  # Use 'id' instead of '_id'
+            job_data = {
+                "id": str(job.get("_id")),
                 "title": job.get("title", ""),
                 "department": job.get("department", ""),
                 "location": job.get("location", ""),
                 "applications": job.get("applications", 0),
                 "is_active": job.get("is_active", True),
-                "created_at": created_at,
-                "expires_at": expires_at,
                 "job_url": job.get("job_url", "")
-            })
+            }
+            
+            created_at = job.get("created_at", {})
+            if isinstance(created_at, dict) and "$date" in created_at:
+                created_at = created_at["$date"]
+            if created_at:
+                job_data["created_at"] = datetime.fromisoformat(created_at.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S")
+            
+            expires_at = job.get("expires_at", "")
+            if expires_at:
+                job_data["expires_at"] = datetime.fromisoformat(expires_at).strftime("%Y-%m-%d %H:%M:%S")
+            
+            jobs.append(job_data)
 
-        context = {
-            "jobs": jobs
-        }
-        return render(request, "create_job.html", context)
+        return render(request, "create_job.html", {"jobs": jobs})
 
     except Exception as e:
         logger.error(f"Error in create_job_page: {str(e)}\n{traceback.format_exc()}")
@@ -529,7 +524,7 @@ def job_page(request, job_id):
     except ValueError:
         return HttpResponse("Invalid date format in database.", status=500)
 
-    # Compare with current time (ensure timezone consistency)
+
     if expires_at < datetime.utcnow().replace(tzinfo=expires_at.tzinfo):
         return HttpResponse("This job posting has expired.", status=410)
 
@@ -559,8 +554,8 @@ def upload_resume(file, job_id, filename):
 
 @login_required_firebase
 def submit_application(request):
-    try:
-        if request.method == "POST":
+    if request.method == "POST":
+        try:
             job_id = request.POST.get("job_id")
             name = request.POST.get("name")
             email = request.POST.get("email")
@@ -574,53 +569,48 @@ def submit_application(request):
             file_extension = resume_file.name.split('.')[-1]
             unique_filename = f"{uuid.uuid4()}.{file_extension}"
             
-            try:
-                # Upload resume to Firebase Storage
-                storage_path = f"jobs/{job_id}/resumes/{unique_filename}"
-                storage.child(storage_path).put(resume_file)
-                resume_url = storage.child(storage_path).get_url(None)
-                
-                # Create application data
-                application_data = {
-                    "_id": str(uuid.uuid4()),
-                    "name": name,
-                    "email": email,
-                    "phone": phone,
-                    "resume_url": resume_url,
-                    "resume_filename": unique_filename,
-                    "job_id": job_id,
-                    "applied_at": datetime.now().isoformat(),
-                    "status": "pending",
-                    "updated_at": datetime.now().isoformat()
-                }
-                
-                # Store in MongoDB
-                settings.MCLIENT['resume_ner']['applications'].insert_one(application_data)
-                
-                # Update application count in job listing
-                settings.MCLIENT['resume_ner']['job_listings'].update_one(
-                    {"_id": job_id},
-                    {"$inc": {"applications": 1}}
-                )
-                
-                return JsonResponse({
-                    "success": True,
-                    "message": "Application submitted successfully!",
-                    "application_id": application_data["_id"]
-                })
-            except Exception as upload_error:
-                logger.error(f"Error during resume upload: {str(upload_error)}")
-                return JsonResponse({
-                    "error": "Failed to upload resume",
-                    "details": str(upload_error)
-                }, status=500)
+            # Upload resume to Firebase Storage
+            storage_path = f"jobs/{job_id}/resumes/{unique_filename}"
+            storage.child(storage_path).put(resume_file)
+            resume_url = storage.child(storage_path).get_url(None)
             
-    except Exception as e:
-        logger.error(f"Error in submit_application: {str(e)}")
-        return JsonResponse({
-            "error": "Failed to submit application",
-            "details": str(e)
-        }, status=500)
+            # Create application data
+            application_data = {
+                "_id": str(uuid.uuid4()),
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "resume_url": resume_url,
+                "resume_filename": unique_filename,
+                "job_id": job_id,
+                "applied_at": datetime.now().isoformat(),
+                "status": "pending",
+                "updated_at": datetime.now().isoformat()
+            }
+            
+            # Store in MongoDB
+            settings.MCLIENT['resume_ner']['applications'].insert_one(application_data)
+            
+            # Update application count in job listing
+            settings.MCLIENT['resume_ner']['job_listings'].update_one(
+                {"_id": job_id},
+                {"$inc": {"applications": 1}}
+            )
+            
+            return JsonResponse({
+                "success": True,
+                "message": "Application submitted successfully!",
+                "application_id": application_data["_id"]
+            })
+            
+        except Exception as e:
+            logger.error(f"Error in submit_application: {str(e)}")
+            return JsonResponse({
+                "error": "Failed to submit application",
+                "details": str(e)
+            }, status=500)
+    
+    return JsonResponse({"error": "Invalid request method"}, status=400)
 
 @login_required_firebase
 def update_application_status(request, application_id):
@@ -805,30 +795,27 @@ def toggle_job_status(request):
         try:
             job_id = request.POST.get('job_id')
             user_email = request.session.get('email')
-            
+            print(job_id, user_email)
             if not job_id or not user_email:
                 return JsonResponse({
                     'success': False,
                     'message': 'Missing required parameters'
                 })
             
-            # Check if job exists in MongoDB
-            mongo_job = settings.MCLIENT['resume_ner']['job_listings'].find_one({
+            # Get current job status from MongoDB
+            job = settings.MCLIENT['resume_ner']['job_listings'].find_one({
                 "_id": job_id,
                 "user": user_email
             })
             
-            # Check if job exists in Firebase
-            firebase_job = db.child("jobs").child(job_id).get()
-            
-            if not mongo_job and not firebase_job.val():
+            if not job:
                 return JsonResponse({
                     'success': False,
                     'message': 'Job not found'
                 })
             
             # Check if job has expired
-            expires_at = mongo_job.get('expires_at') if mongo_job else firebase_job.val().get('expires_at')
+            expires_at = job.get('expires_at')
             if expires_at:
                 expires_at = datetime.fromisoformat(expires_at)
                 if expires_at < datetime.now(timezone.utc):
@@ -837,22 +824,23 @@ def toggle_job_status(request):
                         'message': 'Cannot toggle status of expired job'
                     })
             
-            # Toggle status in MongoDB
-            if mongo_job:
-                current_status = mongo_job.get('is_active', True)
-                settings.MCLIENT['resume_ner']['job_listings'].update_one(
-                    {"_id": job_id},
-                    {"$set": {"is_active": not current_status}}
-                )
+            # Toggle status
+            current_status = job.get('is_active', True)
+            new_status = not current_status
             
-            # Toggle status in Firebase
-            if firebase_job.val():
-                current_status = firebase_job.val().get('is_active', True)
-                db.child("jobs").child(job_id).update({"is_active": not current_status})
+            # Update in MongoDB
+            settings.MCLIENT['resume_ner']['job_listings'].update_one(
+                {"_id": job_id},
+                {"$set": {"is_active": new_status}}
+            )
+            
+            # Update in Firebase
+            db.child("jobs").child(job_id).update({"is_active": new_status})
             
             return JsonResponse({
                 'success': True,
-                'message': 'Job status updated successfully'
+                'message': 'Job status updated successfully',
+                'new_status': new_status
             })
             
         except Exception as e:
@@ -866,3 +854,65 @@ def toggle_job_status(request):
         'success': False,
         'message': 'Invalid request method'
     })
+
+@login_required_firebase
+def company_details(request):
+    try:
+        user_email = request.session.get('email')
+        if not user_email:
+            return redirect('login')
+
+        # Get company details from MongoDB
+        company = settings.MCLIENT['resume_ner']['company_details'].find_one({"user": user_email})
+        
+        if request.method == 'POST':
+            # Update company details
+            company_data = {
+                "user": user_email,
+                "company_name": request.POST.get('company_name'),
+                "website": request.POST.get('website'),
+                "industry": request.POST.get('industry'),
+                "size": request.POST.get('size'),
+                "founded": request.POST.get('founded'),
+                "description": request.POST.get('description'),
+                "mission": request.POST.get('mission'),
+                "vision": request.POST.get('vision'),
+                "values": request.POST.get('values'),
+                "benefits": request.POST.get('benefits'),
+                "culture": request.POST.get('culture'),
+                "address": {
+                    "street": request.POST.get('street'),
+                    "city": request.POST.get('city'),
+                    "state": request.POST.get('state'),
+                    "country": request.POST.get('country'),
+                    "zip_code": request.POST.get('zip_code')
+                },
+                "contact": {
+                    "email": request.POST.get('contact_email'),
+                    "phone": request.POST.get('contact_phone'),
+                    "linkedin": request.POST.get('linkedin'),
+                    "twitter": request.POST.get('twitter')
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+
+            if company:
+                # Update existing company details
+                settings.MCLIENT['resume_ner']['company_details'].update_one(
+                    {"user": user_email},
+                    {"$set": company_data}
+                )
+            else:
+                # Create new company details
+                settings.MCLIENT['resume_ner']['company_details'].insert_one(company_data)
+                company = company_data
+
+            messages.success(request, 'Company details updated successfully!')
+            return redirect('company_details')
+
+        return render(request, 'company_details.html', {'company': company})
+
+    except Exception as e:
+        logger.error(f"Error in company_details view: {str(e)}\n{traceback.format_exc()}")
+        messages.error(request, 'An error occurred while processing your request.')
+        return redirect('dashboard')

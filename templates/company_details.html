@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .company-form {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    .form-section {
+        background: #fff;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .form-section h3 {
+        color: #4e73df;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e3e6f0;
+    }
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .social-links .input-group-text {
+        background-color: #f8f9fc;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="company-form">
+        <h2 class="mb-4">Company Details</h2>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h3>Basic Information</h3>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="company_name" class="form-label">Company Name</label>
+                        <input type="text" class="form-control" id="company_name" name="company_name" 
+                               value="{{ company.company_name|default:'' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="website" class="form-label">Website</label>
+                        <input type="url" class="form-control" id="website" name="website" 
+                               value="{{ company.website|default:'' }}">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="industry" class="form-label">Industry</label>
+                        <input type="text" class="form-control" id="industry" name="industry" 
+                               value="{{ company.industry|default:'' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="size" class="form-label">Company Size</label>
+                        <input type="text" class="form-control" id="size" name="size" 
+                               value="{{ company.size|default:'' }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="founded" class="form-label">Year Founded</label>
+                    <input type="number" class="form-control" id="founded" name="founded" 
+                           value="{{ company.founded|default:'' }}">
+                </div>
+            </div>
+
+            <!-- Company Description -->
+            <div class="form-section">
+                <h3>Company Description</h3>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="4">{{ company.description|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="mission" class="form-label">Mission Statement</label>
+                    <textarea class="form-control" id="mission" name="mission" rows="3">{{ company.mission|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="vision" class="form-label">Vision</label>
+                    <textarea class="form-control" id="vision" name="vision" rows="3">{{ company.vision|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="values" class="form-label">Core Values</label>
+                    <textarea class="form-control" id="values" name="values" rows="3">{{ company.values|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Company Culture -->
+            <div class="form-section">
+                <h3>Company Culture</h3>
+                <div class="mb-3">
+                    <label for="benefits" class="form-label">Employee Benefits</label>
+                    <textarea class="form-control" id="benefits" name="benefits" rows="4">{{ company.benefits|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="culture" class="form-label">Company Culture</label>
+                    <textarea class="form-control" id="culture" name="culture" rows="4">{{ company.culture|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="form-section">
+                <h3>Address</h3>
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label for="street" class="form-label">Street Address</label>
+                        <input type="text" class="form-control" id="street" name="street" 
+                               value="{{ company.address.street|default:'' }}">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="city" class="form-label">City</label>
+                        <input type="text" class="form-control" id="city" name="city" 
+                               value="{{ company.address.city|default:'' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="state" class="form-label">State/Province</label>
+                        <input type="text" class="form-control" id="state" name="state" 
+                               value="{{ company.address.state|default:'' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="zip_code" class="form-label">ZIP/Postal Code</label>
+                        <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                               value="{{ company.address.zip_code|default:'' }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="country" class="form-label">Country</label>
+                    <input type="text" class="form-control" id="country" name="country" 
+                           value="{{ company.address.country|default:'' }}">
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="form-section">
+                <h3>Contact Information</h3>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="contact_email" class="form-label">Contact Email</label>
+                        <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                               value="{{ company.contact.email|default:'' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contact_phone" class="form-label">Contact Phone</label>
+                        <input type="tel" class="form-control" id="contact_phone" name="contact_phone" 
+                               value="{{ company.contact.phone|default:'' }}">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
+                            <input type="url" class="form-control" id="linkedin" name="linkedin" 
+                                   placeholder="LinkedIn URL" value="{{ company.contact.linkedin|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-twitter"></i></span>
+                            <input type="url" class="form-control" id="twitter" name="twitter" 
+                                   placeholder="Twitter URL" value="{{ company.contact.twitter|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Save Company Details</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any JavaScript functionality here if needed
+});
+</script>
+{% endblock %} 
