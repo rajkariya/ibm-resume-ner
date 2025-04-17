@@ -159,6 +159,10 @@ def fetch_jobs(request):
                         "is_active": job_data.get('is_active', True),
                         "job_url": job_data.get('job_url', ''),
                         "job_id": job_data.get('job_id', ''),
+                        "location": job_data.get('location', ''),
+                        "experience": job_data.get('experience', ''),
+                        "salary_range": job_data.get('salary_range', ''),
+                        "interview_rounds": job_data.get('interview_rounds', ''),
                     })
         logger.info(f"Found {len(firebase_jobs)} jobs in Firebase for user {user_email}")
 
@@ -179,6 +183,8 @@ def fetch_jobs(request):
                     "is_active": job.get('is_active', True),
                     "job_url": job.get('job_url', ''),
                     "job_id": job.get('job_id', ''),
+                    "location": job.get('location', ''),
+  
                 })
                 seen_ids.add(job_id)
 
@@ -474,6 +480,7 @@ def manage_candidates(request):
     return render(request, "manage_applications.html")
 
 @login_required_firebase
+@login_required_firebase
 def create_job_page(request):
     try:
         user_email = request.session.get("email")
@@ -512,23 +519,61 @@ def create_job_page(request):
         logger.error(f"Error in create_job_page: {str(e)}\n{traceback.format_exc()}")
         messages.error(request, "An error occurred while loading the page.")
         return redirect("dashboard")
-
 def job_page(request, job_id):
-    job = settings.MCLIENT['resume_ner']['job_listings'].find_one({"_id": job_id})
-
-    if not job:
-        return HttpResponse("Job not found.", status=404)
-
     try:
-        expires_at = parser.isoparse(job["expires_at"])
-    except ValueError:
-        return HttpResponse("Invalid date format in database.", status=500)
+        job = settings.MCLIENT['resume_ner']['job_listings'].find_one({"_id": job_id})
+        
+        if not job:
+            return HttpResponse("Job not found.", status=404)
 
+        company = settings.MCLIENT['resume_ner']['company_details'].find_one({"user": job.get("user")})
+        
+        if not company:
+            company = {
+                "company_name": "Company Name",
+                "industry": "Industry",
+                "company_size": "Company Size",
+                "founded": "Year Founded",
+                "website": "#",
+                "description": "Company Description",
+                "mission": "Company Mission",
+                "vision": "Company Vision",
+                "values": "Company Values"
+            }
 
-    if expires_at < datetime.utcnow().replace(tzinfo=expires_at.tzinfo):
-        return HttpResponse("This job posting has expired.", status=410)
+        job_data = {
+            "title": job.get("title", ""),
+            "experience": job.get("experience", ""),
+            "salary_range": job.get("salary_range", ""),
+            "location": job.get("location", ""),
+            "description": job.get("description", ""),
+            "created_at": job.get("created_at", ""),
+            "expires_at": job.get("expires_at", ""),
+            "is_active": job.get("is_active", True),
+            "job_id": job_id,
+            "company_name": company.get("company_name", ""),
+            "industry": company.get("industry", ""),
+            "company_size": company.get("size", ""),
+            "founded": company.get("founded", ""),
+            "website": company.get("website", ""),
+            "company_description": company.get("description", ""),
+            "mission": company.get("mission", ""),
+            "vision": company.get("vision", ""),
+            "values": company.get("values", "")
+        }
 
-    return render(request, "job_detail.html", {"job": job})
+        try:
+            expires_at = parser.isoparse(job_data["expires_at"])
+            if expires_at < datetime.now(timezone.utc):
+                job_data["is_active"] = False
+        except (ValueError, KeyError):
+            job_data["is_active"] = False
+
+        return render(request, "job_detail.html", {"job": job_data})
+
+    except Exception as e:
+        logger.error(f"Error in job_page view: {str(e)}\n{traceback.format_exc()}")
+        return HttpResponse("An error occurred while loading the job page.", status=500)
 
 
 def upload_resume(file, job_id, filename):
