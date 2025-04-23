@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('job_id', '{{ job.id }}');
         
         fetch('{% url "submit_application" %}', {
+            
             method: 'POST',
             body: formData,
             headers: {

@@ -8,7 +8,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
+# import pyrebase4 as pyrebase
 import pyrebase
+# from pyrebase4 import pyrebase
 from .decorators import login_required_firebase 
 import logging
 import traceback
@@ -23,6 +25,9 @@ from .models import JobApplication, JobPosting
 from .forms import JobApplicationForm
 from pymongo import UpdateOne
 from dateutil import parser 
+import google.generativeai as genai
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 config={
 "apiKey": "AIzaSyCAofwa3iucIIYBau6w5L8nTe_S1haS3cw",
@@ -40,6 +45,13 @@ storage=firebase.storage()
 db=firebase.database()
 
 logger = logging.getLogger(__name__)
+
+# Initialize Gemini API
+try:
+    # You'll need to set this in your Django settings
+    genai.configure(api_key=settings.GOOGLE_API_KEY)
+except Exception as e:
+    logger.error(f"Failed to configure Gemini API: {str(e)}")
 
 def landing(request):
     try:
@@ -961,3 +973,68 @@ def company_details(request):
         logger.error(f"Error in company_details view: {str(e)}\n{traceback.format_exc()}")
         messages.error(request, 'An error occurred while processing your request.')
         return redirect('dashboard')
+
+@csrf_exempt
+def chatbot(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_message = data.get('message', '')
+            
+            if not user_message:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Message cannot be empty'
+                }, status=400)
+            
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            
+            context = """
+            You are a helpful assistant for Ner Resume, a smart resume analysis platform. 
+            Your role is to help users understand the platform's features and capabilities.
+            You should only provide information about:
+            1. Resume analysis features
+            2. Job posting capabilities
+            3. Application management
+            4. Candidate screening
+            5. Platform usage instructions
+            
+            If asked about anything outside these topics, politely inform the user that you can only discuss Ner Resume related topics.
+            Keep your responses concise and to the point.
+            """
+            
+            try:
+                response = model.generate_content(f"{context}\nUser: {user_message}")
+                
+                if not response.text:
+                    raise Exception("Empty response from Gemini API")
+                
+                return JsonResponse({
+                    'success': True,
+                    'response': response.text
+                })
+                
+            except Exception as e:
+                logger.error(f"Error generating response: {str(e)}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Failed to generate response',
+                    'details': str(e)
+                }, status=500)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Unexpected error in chatbot view: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'An unexpected error occurred'
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Invalid request method'
+    }, status=400)

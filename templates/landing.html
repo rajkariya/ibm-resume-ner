@@ -12,101 +12,253 @@
             --primary-color: #2c3e50;
             --secondary-color: #34495e;
             --accent-color: #3498db;
+            --chatbot-bg: #ffffff;
+            --chatbot-primary: #3498db;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
+            overflow-x: hidden;
         }
 
         .navbar {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             padding: 1rem 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
         .navbar-brand {
             font-weight: 600;
             font-size: 1.5rem;
             color: white !important;
+            transition: transform 0.3s ease;
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
         }
 
         .navbar-brand img {
             height: 40px;
+            width: auto;
             margin-right: 10px;
         }
 
         .hero-section {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 80px 0;
-            margin-bottom: 60px;
+            padding: 100px 0;
+            margin-bottom: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("{% static 'images/pattern.png' %}") repeat;
+            opacity: 0.1;
+            z-index: 0;
         }
 
         .hero-content {
             max-width: 600px;
+            position: relative;
+            z-index: 1;
         }
 
         .hero-title {
-            font-size: 3rem;
-            font-weight: 700;
+            font-size: 3.5rem;
+            font-weight: 800;
             color: var(--primary-color);
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            line-height: 1.2;
         }
 
         .hero-subtitle {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
         .feature-card {
             background: white;
-            border-radius: 10px;
-            padding: 30px;
+            border-radius: 15px;
+            padding: 35px;
             margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .feature-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
         }
 
         .feature-icon {
-            font-size: 2.5rem;
+            font-size: 3rem;
             color: var(--accent-color);
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1);
         }
 
         .cta-section {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 60px 0;
-            margin-top: 60px;
+            padding: 80px 0;
+            margin-top: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("{% static 'images/pattern.png' %}") repeat;
+            opacity: 0.1;
         }
 
         .btn-primary {
             background: var(--accent-color);
             border: none;
-            padding: 12px 30px;
-            font-weight: 500;
+            padding: 15px 35px;
+            font-weight: 600;
+            border-radius: 50px;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
         }
 
         .btn-primary:hover {
             background: #2980b9;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
         }
 
-        .btn-outline-light {
-            padding: 12px 30px;
-            font-weight: 500;
+        /* Chatbot Styles */
+        .chatbot-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .chatbot-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--chatbot-primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .chatbot-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .chatbot-window {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 350px;
+            height: 500px;
+            background: var(--chatbot-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .chatbot-header {
+            background: var(--chatbot-primary);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background: #f5f5f5;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .chatbot-input {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .chatbot-input button {
+            background: var(--chatbot-primary);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .btn-outline-light:hover {
-            transform: translateY(-2px);
+        .chatbot-input button:hover {
+            background: #2980b9;
         }
 
         @media (max-width: 768px) {
@@ -117,6 +269,45 @@
             .hero-section {
                 padding: 60px 0;
             }
+
+            .chatbot-window {
+                width: 300px;
+                height: 400px;
+                bottom: 80px;
+                right: 15px;
+            }
+        }
+
+        /* Add these new styles for loading state */
+        .chatbot-loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #666;
+        }
+
+        .chatbot-loading .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--chatbot-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Ensure images are properly displayed */
+        .hero-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -162,7 +353,7 @@
           </div>
         </div>
                 <div class="col-lg-6">
-                    <img src="{% static 'images/hero-image.png' %}" alt="Hero Image" class="img-fluid">
+                    <img src="{% static 'images/hero-image.png' %}" alt="Hero Image" class="img-fluid hero-image">
                 </div>
           </div>
         </div>
@@ -237,6 +428,44 @@
         </div>
     </section>
 
+    <!-- Chatbot Button and Window -->
+    <div class="chatbot-container">
+        <button class="chatbot-button" onclick="toggleChatbot()">
+            <i class="bi bi-chat-dots"></i>
+        </button>
+        <div class="chatbot-window" id="chatbotWindow">
+            <div class="chatbot-header">
+                <span>Ner Resume Assistant</span>
+                <button onclick="toggleChatbot()" style="background: none; border: none; color: white;">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="chatbot-messages" id="chatbotMessages">
+                <div class="message bot-message">
+                    Hello! I'm your Ner Resume assistant. I can help you with:
+                    <ul>
+                        <li>Understanding our resume analysis features</li>
+                        <li>Job posting capabilities</li>
+                        <li>Application management</li>
+                        <li>Candidate screening</li>
+                        <li>Platform usage instructions</li>
+                    </ul>
+                    How can I help you today?
+                </div>
+            </div>
+            <div class="chatbot-loading" id="chatbotLoading">
+                <div class="spinner"></div>
+                <span>Thinking...</span>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="userInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">
+                    <i class="bi bi-send"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="py-4 bg-dark text-white">
         <div class="container">
@@ -253,5 +482,93 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Chatbot functionality
+        function toggleChatbot() {
+            const chatbotWindow = document.getElementById('chatbotWindow');
+            chatbotWindow.style.display = chatbotWindow.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            
+            if (message) {
+                // Add user message to chat
+                addMessage(message, 'user');
+                userInput.value = '';
+
+                // Show loading state
+                const loading = document.getElementById('chatbotLoading');
+                loading.style.display = 'block';
+
+                try {
+                    // Send message to backend
+                    const response = await fetch('/chatbot/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ message: message })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        addMessage(data.response, 'bot');
+                    } else {
+                        addMessage("I'm sorry, I encountered an error. Please try again later.", 'bot');
+                    }
+                } catch (error) {
+                    addMessage("I'm sorry, I encountered an error. Please try again later.", 'bot');
+                } finally {
+                    // Hide loading state
+                    loading.style.display = 'none';
+                }
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messagesContainer = document.getElementById('chatbotMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
 </body>
 </html>

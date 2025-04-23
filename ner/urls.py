@@ -42,4 +42,5 @@ urlpatterns = [
     path('fetch-jobs/', views.fetch_jobs, name='fetch_jobs'),
     path('toggle-job-status/', views.toggle_job_status, name='toggle_job_status'),
     path('company-details/', views.company_details, name='company_details'),
+    path('chatbot/', views.chatbot, name="chatbot"),
 ]
