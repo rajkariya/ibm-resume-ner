@@ -6,32 +6,37 @@
     <title>Login - Ner Resume</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     {% load static %}
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #34495e;
-            --accent-color: #3498db;
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #3b82f6;
+            --text-color: #1f2937;
+            --light-bg: #f3f4f6;
+            --white: #ffffff;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
         .navbar {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             padding: 1rem 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
         }
 
         .navbar-brand {
             font-weight: 600;
             font-size: 1.5rem;
-            color: white !important;
+            color: var(--primary-color) !important;
         }
 
         .navbar-brand img {
@@ -45,15 +50,23 @@
             align-items: center;
             justify-content: center;
             padding: 2rem 0;
+            min-height: calc(100vh - 120px); /* Subtract navbar and footer height */
+            margin: 0;
         }
 
         .login-card {
-            background: white;
-            border-radius: 15px;
+            background: var(--white);
+            border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             padding: 2.5rem;
             width: 100%;
             max-width: 450px;
+            transition: transform 0.3s ease;
+            margin: 0 auto;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
         }
 
         .login-header {
@@ -67,51 +80,73 @@
         }
 
         .login-header h1 {
-            color: var(--primary-color);
+            color: var(--text-color);
             font-size: 1.8rem;
             margin-bottom: 0.5rem;
+            font-weight: 600;
         }
 
         .login-header p {
-            color: #666;
+            color: #4b5563;
             margin-bottom: 0;
         }
 
         .form-control {
             padding: 0.75rem 1rem;
-            border-radius: 8px;
-            border: 1px solid #ddd;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
             transition: all 0.3s ease;
         }
 
         .form-control:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
 
         .btn-primary {
-            background: var(--accent-color);
+            background: var(--primary-color);
             border: none;
             padding: 0.75rem 1.5rem;
             font-weight: 500;
-            border-radius: 8px;
+            border-radius: 12px;
             transition: all 0.3s ease;
         }
 
         .btn-primary:hover {
-            background: #2980b9;
+            background: var(--secondary-color);
             transform: translateY(-2px);
         }
 
-        .alert {
-            border-radius: 8px;
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+            overflow: hidden;
+        }
+
+        .toast-header {
+            background: var(--primary-color);
+            color: var(--white);
+            border: none;
+            padding: 0.75rem 1rem;
+        }
+
+        .toast-body {
             padding: 1rem;
-            margin-bottom: 1.5rem;
+            color: var(--text-color);
         }
 
         .footer {
             background: var(--primary-color);
-            color: white;
+            color: var(--white);
             padding: 1rem 0;
             text-align: center;
         }
@@ -126,7 +161,7 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="/">
                 <img src="{% static 'logo.png' %}" alt="Ner Resume Logo">
@@ -135,11 +170,36 @@
         </div>
     </nav>
 
+    <!-- Toast Container -->
+    <div class="toast-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <strong class="me-auto">
+                            {% if message.tags == 'error' %}
+                                <i class="bi bi-exclamation-circle me-2"></i>Error
+                            {% elif message.tags == 'success' %}
+                                <i class="bi bi-check-circle me-2"></i>Success
+                            {% else %}
+                                <i class="bi bi-info-circle me-2"></i>Info
+                            {% endif %}
+                        </strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        {{ message }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
     <!-- Login Form -->
     <div class="login-container">
         <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
+            <div class="row justify-content-center align-items-center">
+                <div class="col-md-6 col-lg-5">
                     <div class="login-card">
                         <div class="login-header">
                             <img src="{% static 'logo.png' %}" alt="Ner Resume Logo">
@@ -147,28 +207,24 @@
                             <p>Sign in to your account</p>
                         </div>
 
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }}">
-                                    {{ message }}
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-
                         <form method="post" action="{% url 'login' %}">
                             {% csrf_token %}
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="email" class="form-control" id="email" name="email" required>
-                                </div>
+                            </div>
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
                                 <input type="password" class="form-control" id="password" name="password" required>
                             </div>
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">Sign In</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-3">
+                            <p class="mb-0">Don't have an account? <a href="{% url 'signup' %}" class="text-primary">Sign up</a></p>
                         </div>
-                    </form>
                     </div>
                 </div>
             </div>
@@ -178,10 +234,23 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p class="mb-0">&copy; 2024 Ner Resume. All rights reserved.</p>
+            <p class="mb-0">&copy; 2025 Ner Resume. All rights reserved.</p>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            var toastList = toastElList.map(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl, {
+                    autohide: true,
+                    delay: 3000
+                });
+                toast.show();
+                return toast;
+            });
+        });
+    </script>
 </body>
 </html>

@@ -305,11 +305,24 @@ def signup_view(request):
 
 def logout_view(request):
     try:
-        # Clear the session
+        # Get Firebase auth instance
+        auth = firebase.auth()
+        
+        # Get the current user's ID token
+        user = request.session.get('user')
+        if user and 'idToken' in user:
+            try:
+                # Revoke the refresh token
+                auth.revoke_refresh_tokens(user['idToken'])
+            except Exception as e:
+                logger.warning(f"Could not revoke refresh token: {e}")
+        
         request.session.flush()
         
-        # Clear any existing messages
-        messages.clear(request)
+        storage = messages.get_messages(request)
+        for message in storage:
+            pass  
+        # This will clear all messages
         
         # Add success message
         messages.success(request, "You have been successfully logged out.")
