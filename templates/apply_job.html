@@ -8,23 +8,169 @@
         margin: 0 auto;
         padding: 2rem;
     }
-    .form-control:focus {
-        border-color: #4e73df;
-        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
-    }
-    .job-status-banner {
-        padding: 1rem;
+
+    .page-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
         margin-bottom: 2rem;
-        border-radius: 0.5rem;
         text-align: center;
     }
-    .job-status-banner.closed {
-        background-color: #f8d7da;
-        color: #721c24;
+
+    .page-header h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
+
+    .job-status-banner {
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .job-status-banner:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .job-status-banner.closed {
+        background: linear-gradient(45deg, #e74c3c, #c0392b);
+        color: white;
+    }
+
     .job-status-banner.open {
-        background-color: #d4edda;
-        color: #155724;
+        background: linear-gradient(45deg, #2ecc71, #27ae60);
+        color: white;
+    }
+
+    .job-status-banner h4 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 500;
+    }
+
+    .job-status-banner i {
+        font-size: 1.5rem;
+        vertical-align: middle;
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    .form-label {
+        color: #2c3e50;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        padding: 0.8rem 1rem;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+
+    .form-text {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        padding: 1rem 2rem;
+        font-weight: 500;
+        font-size: 1.1rem;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(45deg, #2980b9, #2472a4);
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .btn-primary:disabled {
+        background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    textarea.form-control {
+        min-height: 150px;
+    }
+
+    .container {
+        padding: 2rem;
+    }
+
+    .d-grid {
+        margin-top: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        font-size: 100px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .file-input-label {
+        display: block;
+        padding: 0.8rem 1rem;
+        background: #f8f9fa;
+        border: 1px dashed #e0e0e0;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .file-input-label:hover {
+        background: #f1f1f1;
+        border-color: #3498db;
+    }
+
+    .file-input-label i {
+        font-size: 1.5rem;
+        color: #3498db;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-input-label span {
+        display: block;
+        color: #2c3e50;
+        font-weight: 500;
     }
 </style>
 {% endblock %}
@@ -32,6 +178,11 @@
 {% block content %}
 <div class="container">
     <div class="application-form">
+        <div class="page-header">
+            <h2>{{ job.title }}</h2>
+            <p class="mb-0 text-white-50">Join our team and make a difference</p>
+        </div>
+
         <div class="job-status-banner {% if job.is_active %}open{% else %}closed{% endif %}">
             <h4>
                 {% if job.is_active %}
@@ -41,46 +192,66 @@
                 {% endif %}
             </h4>
         </div>
-
-        <h2 class="mb-4">Apply for {{ job.title }}</h2>
         
         <form id="applicationForm" method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="first_name" class="form-label">First Name</label>
-                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+            <div class="form-section">
+                <h3 class="mb-4"><i class="bi bi-person me-2"></i>Personal Information</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="first_name" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="last_name" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label for="last_name" class="form-label">Last Name</label>
-                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="mb-4"><i class="bi bi-file-earmark me-2"></i>Application Documents</h3>
+                <div class="form-group">
+                    <label for="resume" class="form-label">Resume</label>
+                    <div class="file-input-wrapper">
+                        <label class="file-input-label" for="resume">
+                            <i class="bi bi-cloud-upload"></i>
+                            <span>Click to upload your resume</span>
+                            <small class="text-muted">Accepted formats: PDF, DOC, DOCX</small>
+                        </label>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cover_letter" class="form-label">Cover Letter</label>
+                    <textarea class="form-control" id="cover_letter" name="cover_letter" rows="5" 
+                              placeholder="Tell us why you're the perfect candidate for this position..."></textarea>
                 </div>
             </div>
             
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
-                </div>
-                <div class="col-md-6">
-                    <label for="phone" class="form-label">Phone</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" required>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="resume" class="form-label">Resume</label>
-                <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx" required>
-                <div class="form-text">Accepted formats: PDF, DOC, DOCX</div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="cover_letter" class="form-label">Cover Letter</label>
-                <textarea class="form-control" id="cover_letter" name="cover_letter" rows="5"></textarea>
-            </div>
-            
-            <div class="d-grid gap-2">
+            <div class="d-grid">
                 <button type="submit" class="btn btn-primary" {% if not job.is_active %}disabled{% endif %}>
+                    <i class="bi bi-send me-2"></i>
                     {% if job.is_active %}
                         Submit Application
                     {% else %}
@@ -98,6 +269,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('applicationForm');
+    const fileInput = document.getElementById('resume');
+    const fileLabel = document.querySelector('.file-input-label span');
+    
+    fileInput.addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            fileLabel.textContent = this.files[0].name;
+        } else {
+            fileLabel.textContent = 'Click to upload your resume';
+        }
+    });
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -106,7 +287,6 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('job_id', '{{ job.id }}');
         
         fetch('{% url "submit_application" %}', {
-            
             method: 'POST',
             body: formData,
             headers: {
@@ -122,8 +302,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
-                    // Reset form
                     form.reset();
+                    fileLabel.textContent = 'Click to upload your resume';
                 });
             } else {
                 Swal.fire({

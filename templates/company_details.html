@@ -8,25 +8,103 @@
         margin: 0 auto;
         padding: 2rem;
     }
-    .form-section {
-        background: #fff;
-        border-radius: 0.5rem;
-        padding: 1.5rem;
+
+    .page-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
         margin-bottom: 2rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     }
+
+    .form-section {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .form-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
     .form-section h3 {
-        color: #4e73df;
+        color: #2c3e50;
         margin-bottom: 1.5rem;
         padding-bottom: 0.5rem;
         border-bottom: 1px solid #e3e6f0;
+        font-size: 1.2rem;
+        font-weight: 600;
     }
+
+    .form-label {
+        color: #2c3e50;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        padding: 0.6rem 1rem;
+        transition: all 0.3s;
+    }
+
     .form-control:focus {
-        border-color: #4e73df;
-        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
     }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        color: #2c3e50;
+    }
+
+    .btn-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        padding: 0.8rem 2rem;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(45deg, #2980b9, #2472a4);
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .social-links .input-group {
+        margin-bottom: 1rem;
+    }
+
     .social-links .input-group-text {
-        background-color: #f8f9fc;
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        border-right: none;
+    }
+
+    .social-links .form-control {
+        border-left: none;
+    }
+
+    .social-links .input-group-text i {
+        color: #2c3e50;
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+    }
+
+    .container-fluid {
+        padding: 2rem;
+    }
+
+    .d-grid {
+        margin-top: 2rem;
     }
 </style>
 {% endblock %}
@@ -34,14 +112,17 @@
 {% block content %}
 <div class="container-fluid">
     <div class="company-form">
-        <h2 class="mb-4">Company Details</h2>
+        <div class="page-header">
+            <h2 class="mb-1">Company Details</h2>
+            <p class="mb-0 text-white-50">Update your company information and profile</p>
+        </div>
         
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
             <!-- Basic Information -->
             <div class="form-section">
-                <h3>Basic Information</h3>
+                <h3><i class="bi bi-building me-2"></i>Basic Information</h3>
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="company_name" class="form-label">Company Name</label>
@@ -75,7 +156,7 @@
 
             <!-- Company Description -->
             <div class="form-section">
-                <h3>Company Description</h3>
+                <h3><i class="bi bi-file-text me-2"></i>Company Description</h3>
                 <div class="mb-3">
                     <label for="description" class="form-label">Description</label>
                     <textarea class="form-control" id="description" name="description" rows="4">{{ company.description|default:'' }}</textarea>
@@ -96,7 +177,7 @@
 
             <!-- Company Culture -->
             <div class="form-section">
-                <h3>Company Culture</h3>
+                <h3><i class="bi bi-people me-2"></i>Company Culture</h3>
                 <div class="mb-3">
                     <label for="benefits" class="form-label">Employee Benefits</label>
                     <textarea class="form-control" id="benefits" name="benefits" rows="4">{{ company.benefits|default:'' }}</textarea>
@@ -109,7 +190,7 @@
 
             <!-- Address -->
             <div class="form-section">
-                <h3>Address</h3>
+                <h3><i class="bi bi-geo-alt me-2"></i>Address</h3>
                 <div class="row mb-3">
                     <div class="col-12">
                         <label for="street" class="form-label">Street Address</label>
@@ -143,7 +224,7 @@
 
             <!-- Contact Information -->
             <div class="form-section">
-                <h3>Contact Information</h3>
+                <h3><i class="bi bi-telephone me-2"></i>Contact Information</h3>
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="contact_email" class="form-label">Contact Email</label>
@@ -156,26 +237,30 @@
                                value="{{ company.contact.phone|default:'' }}">
                     </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
-                            <input type="url" class="form-control" id="linkedin" name="linkedin" 
-                                   placeholder="LinkedIn URL" value="{{ company.contact.linkedin|default:'' }}">
+                <div class="social-links">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
+                                <input type="url" class="form-control" id="linkedin" name="linkedin" 
+                                       placeholder="LinkedIn URL" value="{{ company.contact.linkedin|default:'' }}">
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-twitter"></i></span>
-                            <input type="url" class="form-control" id="twitter" name="twitter" 
-                                   placeholder="Twitter URL" value="{{ company.contact.twitter|default:'' }}">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-twitter"></i></span>
+                                <input type="url" class="form-control" id="twitter" name="twitter" 
+                                       placeholder="Twitter URL" value="{{ company.contact.twitter|default:'' }}">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">Save Company Details</button>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-2"></i>Save Company Details
+                </button>
             </div>
         </form>
     </div>

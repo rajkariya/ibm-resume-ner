@@ -46,7 +46,7 @@ db=firebase.database()
 
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini API
+# Initialize Gemini API  
 try:
     # You'll need to set this in your Django settings
     genai.configure(api_key=settings.GOOGLE_API_KEY)
@@ -338,11 +338,54 @@ def logout_view(request):
 @login_required_firebase
 def get_applications(request, job_id):
     try:
-        # Get applications from MongoDB
-        applications = list(settings.MCLIENT['resume_ner']['applications'].find(
-            {"job_id": job_id},
-            {"_id": 1, "name": 1, "email": 1, "phone": 1, "resume_url": 1, "applied_at": 1, "status": 1}
-        ).sort("applied_at", -1))
+        # Create pipeline for aggregation
+        pipeline = [
+            {
+                '$match': {
+                    'job_id': job_id
+                }
+            },
+            {
+                '$lookup': {
+                    'from': 'results',
+                    'let': {'app_id': '$_id'},  # Use application _id
+                    'pipeline': [
+                        {
+                            '$match': {
+                                '$expr': {
+                                    '$eq': ['$resume_id', '$$app_id']  # Match with resume_id in results
+                                }
+                            }
+                        }
+                    ],
+                    'as': 'results'
+                }
+            },
+            {
+                '$project': {
+                    '_id': 1,
+                    'name': 1,
+                    'email': 1,
+                    'phone': 1,
+                    'resume_url': 1,
+                    'applied_at': 1,
+                    'status': 1,
+                    'results': {
+                        '$cond': {
+                            'if': {'$gt': [{'$size': '$results'}, 0]},
+                            'then': {'$arrayElemAt': ['$results', 0]},
+                            'else': None
+                        }
+                    }
+                }
+            },
+            {
+                '$sort': {'applied_at': -1}
+            }
+        ]
+
+        # Execute aggregation
+        applications = list(settings.MCLIENT['resume_ner']['applications'].aggregate(pipeline))
         
         if not applications:
             return JsonResponse({
@@ -359,7 +402,7 @@ def get_applications(request, job_id):
         # Format applications data
         formatted_applications = []
         for app in applications:
-            formatted_applications.append({
+            app_data = {
                 "_id": str(app["_id"]),
                 "name": app.get("name", ""),
                 "email": app.get("email", ""),
@@ -367,7 +410,18 @@ def get_applications(request, job_id):
                 "resume_url": app.get("resume_url", ""),
                 "applied_at": app.get("applied_at", ""),
                 "status": app.get("status", "pending")
-            })
+            }
+
+            # Add results data if available
+            if app.get('results'):
+                app_data['results'] = {
+                    'score': app['results'].get('score', 0),
+                    'processed_at': app['results'].get('processed_at', ''),
+                    'overview': app['results'].get('overview', ''),
+                    'entities': app['results'].get('entities', {})
+                }
+
+            formatted_applications.append(app_data)
         
         return JsonResponse({
             "success": True,
@@ -1051,3 +1105,83 @@ def chatbot(request):
         'success': False,
         'error': 'Invalid request method'
     }, status=400)
+
+@login_required_firebase
+def process_resumes(request):
+    print(request)
+    if request.method == "POST":
+        try:
+            job_id = request.POST.get("job_id")
+            if not job_id:
+                return JsonResponse({"success": False, "message": "Job ID is required"}, status=400)
+
+            # Get the job from MongoDB
+            job = settings.MCLIENT['resume_ner']['job_listings'].find_one({"_id": job_id})
+            if not job:
+                return JsonResponse({"success": False, "message": "Job not found"}, status=404)
+
+            # Check if job is inactive
+            if job.get("is_active", False):
+                return JsonResponse({"success": False, "message": "Cannot process resumes for an active job. Please pause the job first."}, status=400)
+
+            # Check if job has already been processed
+            if job.get("processed", False):
+                return JsonResponse({"success": False, "message": "Resumes for this job have already been processed"}, status=400)
+
+            # Create processing queue entry
+            processing_entry = {
+                "job_id": job_id,
+                "status": "pending",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+
+            # Insert into processing queue
+            settings.MCLIENT['resume_ner']['processing_queue'].insert_one(processing_entry)
+
+            # Update job to mark as processed
+            settings.MCLIENT['resume_ner']['job_listings'].update_one(
+                {"_id": job_id},
+                {"$set": {"processed": True}}
+            )
+
+            return JsonResponse({"success": True, "message": "Resume processing has been queued"})
+
+        except Exception as e:
+            logger.error(f"Error processing resumes: {str(e)}\n{traceback.format_exc()}")
+            return JsonResponse({"success": False, "message": str(e)}, status=500)
+
+    return JsonResponse({"success": False, "message": "Invalid request method"}, status=400)
+
+@login_required_firebase
+def get_application_results(request, application_id):
+    try:
+        # Get the application
+        application = settings.MCLIENT['resume_ner']['applications'].find_one(
+            {'_id': application_id}
+        )
+        if not application:
+            return JsonResponse({'success': False, 'error': 'Application not found'}, status=404)
+
+        # Get the results using application_id as resume_id
+        results = settings.MCLIENT['resume_ner']['results'].find_one(
+            {'resume_id': application_id}
+        )
+        if not results:
+            return JsonResponse({'success': False, 'error': 'Results not found'}, status=404)
+
+        # Prepare the response data
+        response_data = {
+            'name': application.get('name', ''),
+            'email': application.get('email', ''),
+            'phone': application.get('phone', ''),
+            'score': results.get('score', 0),
+            'processed_at': results.get('processed_at', ''),
+            'overview': results.get('overview', ''),
+            'entities': results.get('entities', {})
+        }
+
+        return JsonResponse({'success': True, 'data': response_data})
+    except Exception as e:
+        logger.error(f"Error fetching application results: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500) 

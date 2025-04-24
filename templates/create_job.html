@@ -2,36 +2,227 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/create_job.css' %}">
 <style>
-    .job-card {
-        transition: transform 0.2s;
+    .card {
+        border: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        background: white;
     }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        color: #2c3e50;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        padding: 1rem;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.9rem;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .job-card {
+        transition: all 0.3s ease;
+    }
+
     .job-card:hover {
         transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
+
     .status-badge {
+        padding: 0.5em 1em;
+        border-radius: 20px;
         font-size: 0.8rem;
-        padding: 0.35em 0.65em;
+        font-weight: 500;
+        text-transform: capitalize;
+        min-width: 90px;
+        display: inline-block;
+        text-align: center;
     }
+
+    .btn-group {
+        gap: 0.5rem;
+    }
+
+    .btn-action {
+        padding: 0.4rem;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-action i {
+        font-size: 1rem;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .process-btn {
+        background: linear-gradient(45deg, #9C27B0, #673AB7);
+        color: white;
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+
+    .process-btn:hover:not(:disabled) {
+        background: linear-gradient(45deg, #8e24aa, #5e35b1);
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .process-btn:disabled {
+        background: #E0E0E0;
+        cursor: not-allowed;
+        transform: none;
+    }
+
     .modal-content {
-        border-radius: 0.5rem;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
     }
+
+    .modal-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .form-label {
+        color: #2c3e50;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        padding: 0.6rem 1rem;
+        transition: all 0.3s;
+    }
+
     .form-control:focus {
-        border-color: #4e73df;
-        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
     }
+
     .date-column {
         white-space: nowrap;
+        color: #666;
+        font-size: 0.85rem;
+    }
+
+    .page-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+
+    .create-btn {
+        background: linear-gradient(45deg, #2ecc71, #27ae60);
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .create-btn:hover {
+        background: linear-gradient(45deg, #27ae60, #219a52);
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .alert {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    #alerts {
+        z-index: 1050;
+        max-width: 400px;
+    }
+
+    .btn-close {
+        color: white;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #eee;
+        padding: 1.5rem;
+    }
+
+    .btn-secondary {
+        background-color: #95a5a6;
+        border: none;
+    }
+
+    .btn-secondary:hover {
+        background-color: #7f8c8d;
+    }
+
+    .btn-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(45deg, #2980b9, #2472a4);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Job Listings</h2>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createJobModal">
+<div class="container-fluid px-4">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Job Listings</h2>
+            <p class="mb-0 text-white-50">Create and manage your job postings</p>
+        </div>
+        <button type="button" class="btn create-btn" data-bs-toggle="modal" data-bs-target="#createJobModal">
             <i class="bi bi-plus-circle me-2"></i>Create New Job
         </button>
     </div>
@@ -40,7 +231,7 @@
     <div class="card shadow mb-4">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover" id="jobsTable">
+                <table class="table" id="jobsTable">
                     <thead>
                         <tr>
                             <th>Title</th>
@@ -50,32 +241,49 @@
                             <th>Status</th>
                             <th>Created</th>
                             <th>Expires</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for job in jobs %}
                         <tr>
-                            <td>{{ job.title }}</td>
-                            <td>{{ job.department }}</td>
-                            <td>{{ job.location }}</td>
-                            <td>{{ job.applications }}</td>
                             <td>
-                                <span class="badge {% if job.is_active %}bg-success{% else %}bg-danger{% endif %} status-badge">
+                                <div class="fw-semibold text-dark">{{ job.title }}</div>
+                            </td>
+                            <td>{{ job.department }}</td>
+                            <td>
+                                <i class="bi bi-geo-alt me-1"></i>{{ job.location }}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ job.applications }}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge {% if job.is_active %}bg-success{% else %}bg-danger{% endif %}">
                                     {{ job.is_active|yesno:"Active,Inactive" }}
                                 </span>
                             </td>
-                            <td class="date-column">{{ job.created_at|date:"M d, Y" }}</td>
-                            <td class="date-column">{{ job.expires_at|date:"M d, Y" }}</td>
+                            <td class="date-column">
+                                <i class="bi bi-calendar-event me-1"></i>{{ job.created_at|date:"M d, Y" }}
+                            </td>
+                            <td class="date-column">
+                                <i class="bi bi-calendar-event me-1"></i>{{ job.expires_at|date:"M d, Y" }}
+                            </td>
                             <td>
-                                <div class="btn-group">
-                                    <a href="{{ job.job_url }}" class="btn btn-sm btn-info" target="_blank">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="{{ job.job_url }}" class="btn btn-info btn-action" target="_blank" title="View Job">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm {% if job.is_active %}btn-warning{% else %}btn-success{% endif %} toggle-status" 
+                                    <button type="button" class="btn {% if job.is_active %}btn-warning{% else %}btn-success{% endif %} btn-action toggle-status" 
                                             data-job-id="{{ job.id }}" 
-                                            data-current-status="{{ job.is_active }}">
+                                            data-current-status="{{ job.is_active }}"
+                                            title="{% if job.is_active %}Pause Job{% else %}Activate Job{% endif %}">
                                         <i class="bi {% if job.is_active %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
+                                    </button>
+                                    <button type="button" class="process-btn {% if job.is_active or job.processed %}disabled{% endif %}" 
+                                            data-job-id="{{ job.id }}"
+                                            {% if job.is_active or job.processed %}disabled{% endif %}
+                                            title="Process Applications">
+                                        <i class="bi bi-gear-fill me-1"></i>Process
                                     </button>
                                 </div>
                             </td>
@@ -93,7 +301,9 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="createJobModalLabel">Create New Job</h5>
+                <h5 class="modal-title" id="createJobModalLabel">
+                    <i class="bi bi-briefcase me-2"></i>Create New Job
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -137,14 +347,17 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" form="createJobForm" class="btn btn-primary" id="submitBtn">Create Job</button>
+                <button type="submit" form="createJobForm" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-check-circle me-1"></i>Create Job
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Alerts Container -->
-<div id="alerts" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+<div id="alerts" class="position-fixed top-0 end-0 p-3"></div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -199,6 +412,45 @@
                     submitBtn.prop('disabled', false).text(originalText);
                 }
             });
+        });
+
+        // Handle process button click
+        $(document).on('click', '.process-btn:not(:disabled)', function() {
+            const button = $(this);
+            const jobId = button.data('job-id');
+            
+            if (confirm('Are you sure you want to process all resumes for this job? This action cannot be undone.')) {
+                // Show loading state
+                button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
+                
+                $.ajax({
+                    url: '/process_resumes/',
+                    type: 'POST',
+                    data: {
+                        job_id: jobId,
+                        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showAlert('success', 'Resume processing has been queued successfully');
+                            // Disable the button permanently
+                            button.prop('disabled', true).html('<i class="bi bi-gear"></i> Processed');
+                            // Update the button's class to show it's processed
+                            button.removeClass('process-btn').addClass('btn-secondary');
+                        } else {
+                            showAlert('danger', response.message || 'Failed to queue resume processing');
+                            // Re-enable the button if it failed
+                            button.prop('disabled', false).html('<i class="bi bi-gear"></i> Process');
+                        }
+                    },
+                    error: function(xhr) {
+                        const errorMessage = xhr.responseJSON?.message || 'Failed to queue resume processing';
+                        showAlert('danger', errorMessage);
+                        // Re-enable the button if it failed
+                        button.prop('disabled', false).html('<i class="bi bi-gear"></i> Process');
+                    }
+                });
+            }
         });
 
         // Function to show alerts
@@ -270,6 +522,11 @@
                                         data-job-id="${job.job_id}" 
                                         data-current-status="${job.is_active}">
                                     <i class="bi ${job.is_active ? 'bi-pause-fill' : 'bi-play-fill'}"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm process-btn ${job.is_active || job.processed ? 'disabled' : ''}" 
+                                        data-job-id="${job.job_id}"
+                                        ${job.is_active || job.processed ? 'disabled' : ''}>
+                                    <i class="bi bi-gear"></i> Process
                                 </button>
                             </div>
                         </td>

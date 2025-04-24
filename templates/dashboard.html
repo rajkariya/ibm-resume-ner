@@ -2,12 +2,159 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <style>
+    .card {
+        border: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        background: white;
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 10px 10px 0 0 !important;
+        padding: 1.5rem;
+    }
+
+    .card-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .stat-card.bg-success {
+        background: linear-gradient(45deg, #27ae60, #2ecc71);
+    }
+
+    .stat-card.bg-warning {
+        background: linear-gradient(45deg, #f39c12, #f1c40f);
+    }
+
+    .stat-card.bg-info {
+        background: linear-gradient(45deg, #2980b9, #3498db);
+    }
+
+    .stat-card .card-title {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table th {
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        color: #2c3e50;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        padding: 1rem;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 0.9rem;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .status-badge {
+        padding: 0.5em 1em;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: capitalize;
+        min-width: 90px;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1rem;
+        transition: all 0.3s;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .list-group-item h6 {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .list-group-item small {
+        color: #95a5a6;
+    }
+
+    .list-group-item p {
+        color: #666;
+        margin-bottom: 0;
+    }
+
     .chart-container {
         position: relative;
         height: 300px;
         width: 100%;
+    }
+
+    .container-fluid {
+        padding: 2rem;
+    }
+
+    .row {
+        margin-bottom: 2rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1.5rem !important;
     }
 </style>
 {% endblock %}
@@ -17,7 +164,7 @@
     <div class="row">
         <!-- Overview Cards -->
         <div class="col-md-3 mb-4">
-            <div class="card bg-primary text-white h-100">
+            <div class="stat-card">
                 <div class="card-body">
                     <h5 class="card-title">Total Jobs</h5>
                     <h2 class="mb-0">{{ overview.total_jobs }}</h2>
@@ -25,7 +172,7 @@
             </div>
         </div>
         <div class="col-md-3 mb-4">
-            <div class="card bg-success text-white h-100">
+            <div class="stat-card bg-success">
                 <div class="card-body">
                     <h5 class="card-title">Active Applications</h5>
                     <h2 class="mb-0">{{ overview.active_applications }}</h2>
@@ -33,7 +180,7 @@
             </div>
         </div>
         <div class="col-md-3 mb-4">
-            <div class="card bg-warning text-white h-100">
+            <div class="stat-card bg-warning">
                 <div class="card-body">
                     <h5 class="card-title">Pending Reviews</h5>
                     <h2 class="mb-0">{{ overview.pending_reviews }}</h2>
@@ -41,7 +188,7 @@
             </div>
         </div>
         <div class="col-md-3 mb-4">
-            <div class="card bg-info text-white h-100">
+            <div class="stat-card bg-info">
                 <div class="card-body">
                     <h5 class="card-title">Shortlisted Candidates</h5>
                     <h2 class="mb-0">{{ overview.shortlisted_candidates }}</h2>
@@ -125,7 +272,7 @@
                                     <td>{{ job.title }}</td>
                                     <td>{{ job.applications }}</td>
                                     <td>
-                                        <span class="badge {% if job.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                                        <span class="status-badge {% if job.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
                                             {{ job.status }}
                                         </span>
                                     </td>
@@ -154,11 +301,11 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 data: {{ status_distribution.values|safe }},
                 backgroundColor: [
-                    '#4e73df',
-                    '#1cc88a',
-                    '#36b9cc',
-                    '#f6c23e',
-                    '#e74a3b'
+                    '#3498db',
+                    '#2ecc71',
+                    '#f1c40f',
+                    '#e74c3c',
+                    '#9b59b6'
                 ]
             }]
         },
@@ -186,8 +333,8 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 label: 'Applications',
                 data: {{ applications_over_time.values|safe }},
-                borderColor: '#4e73df',
-                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.05)',
                 fill: true,
                 tension: 0.1
             }]

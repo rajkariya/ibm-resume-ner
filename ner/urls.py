@@ -43,4 +43,6 @@ urlpatterns = [
     path('toggle-job-status/', views.toggle_job_status, name='toggle_job_status'),
     path('company-details/', views.company_details, name='company_details'),
     path('chatbot/', views.chatbot, name="chatbot"),
+    path('process_resumes/', views.process_resumes, name='process_resumes'),
+    
 ]
