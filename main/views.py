@@ -653,7 +653,8 @@ def job_page(request, job_id):
     except Exception as e:
         logger.error(f"Error in job_page view: {str(e)}\n{traceback.format_exc()}")
         return HttpResponse("An error occurred while loading the job page.", status=500)
-
+def pricing(request):
+    return render(request, 'pricing.html') 
 
 def upload_resume(file, job_id, filename):
     """Upload resume to Firebase Storage with proper path structure"""

@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-cu8-e!97)e@uh(15&7!2otc!_#%%&8yh+ch)sy@#s%n15u2bm8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['resumener.rajkariya.study','www.resumener.rajkariya.study','13.235.223.137:3031']
 
 
 # Application definition
