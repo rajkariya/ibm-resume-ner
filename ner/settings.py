@@ -29,7 +29,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['resumener.rajkariya.study','www.resumener.rajkariya.study','13.235.223.137:3031']
 
-
+CSRF_TRUSTED_ORIGINS = [
+    'https://resumener.rajkariya.study',
+    'http://resumener.rajkariya.study',  # Optional, for HTTP testing
+    'http://localhost',                  # Optional, for local testing
+]
 # Application definition
 
 INSTALLED_APPS = [
