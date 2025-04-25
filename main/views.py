@@ -1158,17 +1158,21 @@ def process_resumes(request):
 def get_application_results(request, application_id):
     try:
         # Get the application
+        print(f"Looking for application with ID: {application_id}")
         application = settings.MCLIENT['resume_ner']['applications'].find_one(
             {'_id': application_id}
         )
         if not application:
+            print(f"Application not found for ID: {application_id}")
             return JsonResponse({'success': False, 'error': 'Application not found'}, status=404)
 
         # Get the results using application_id as resume_id
+        print(f"Looking for results with resume_id: {application_id}")
         results = settings.MCLIENT['resume_ner']['results'].find_one(
             {'resume_id': application_id}
         )
         if not results:
+            print(f"Results not found for resume_id: {application_id}")
             return JsonResponse({'success': False, 'error': 'Results not found'}, status=404)
 
         # Prepare the response data

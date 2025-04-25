@@ -454,6 +454,95 @@
 <script>
 let applicationsTable;
 
+// Global functions
+function getScoreClass(score) {
+    if (score >= 0.7) return 'score-high';
+    if (score >= 0.4) return 'score-medium';
+    return 'score-low';
+}
+
+function formatDate(dateString) {
+    const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+function downloadResume(url) {
+    window.open(url, '_blank');
+}
+
+function updateStatus(applicationId, currentStatus) {
+    $('#applicationId').val(applicationId);
+    $('#statusSelect').val(currentStatus);
+    $('#statusModal').modal('show');
+}
+
+function viewResults(applicationId) {
+    $.ajax({
+        url: `/get_application_results/${applicationId}/`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                const results = response.data;
+                
+                // Update modal content
+                $('#resultName').text(results.name);
+                $('#resultEmail').text(results.email);
+                $('#resultPhone').text(results.phone);
+                $('#resultScore').html(`<span class="badge ${getScoreClass(results.score)}">${(results.score * 100).toFixed(1)}%</span>`);
+                $('#resultProcessedAt').text(formatDate(results.processed_at));
+                $('#resultOverview').text(results.overview);
+                
+                // Update entities - only show categories that have values
+                const entitiesHtml = Object.entries(results.entities)
+                    .map(([category, items]) => {
+                        if (items.length === 0) return '';
+                        return `
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2">
+                                    <i class="bi bi-tag-fill me-2"></i>${category}
+                                </h6>
+                                <div class="entity-list">
+                                    ${items.map(item => `
+                                        <span class="entity-badge">
+                                            <i class="bi bi-check-circle-fill me-1"></i>${item}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    })
+                    .filter(html => html !== '') // Remove empty categories
+                    .join('');
+                
+                if (entitiesHtml) {
+                    $('#resultEntities').html(entitiesHtml);
+                } else {
+                    $('#resultEntities').html(`
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            No entities were extracted from this resume.
+                        </div>
+                    `);
+                }
+                
+                // Show modal
+                $('#resultsModal').modal('show');
+            } else {
+                alert('Failed to load results. Please try again.');
+            }
+        },
+        error: function() {
+            alert('Failed to load results. Please try again.');
+        }
+    });
+}
+
 $(document).ready(function() {
     function showLoader() {
         $('#loader').show();
@@ -482,23 +571,6 @@ $(document).ready(function() {
             case 'rejected': return 'bg-danger';
             default: return 'bg-secondary';
         }
-    }
-
-    function getScoreClass(score) {
-        if (score >= 0.7) return 'score-high';
-        if (score >= 0.4) return 'score-medium';
-        return 'score-low';
-    }
-
-    function formatDate(dateString) {
-        const options = { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        return new Date(dateString).toLocaleDateString('en-US', options);
     }
 
     function loadJobs() {
@@ -688,74 +760,5 @@ $(document).ready(function() {
     // Initial load
     loadJobs();
 });
-
-// Global functions
-function downloadResume(url) {
-    window.open(url, '_blank');
-}
-
-function updateStatus(applicationId, currentStatus) {
-    $('#applicationId').val(applicationId);
-    $('#statusSelect').val(currentStatus);
-    $('#statusModal').modal('show');
-}
-
-function viewResults(applicationId) {
-    $.ajax({
-        url: `/get_application_results/${applicationId}/`,
-        method: 'GET',
-        success: function(response) {
-            if (response.success && response.data) {
-                const results = response.data;
-                
-                // Update modal content
-                $('#resultName').text(results.name);
-                $('#resultEmail').text(results.email);
-                $('#resultPhone').text(results.phone);
-                $('#resultScore').html(`<span class="badge ${getScoreClass(results.score)}">${(results.score * 100).toFixed(1)}%</span>`);
-                $('#resultProcessedAt').text(formatDate(results.processed_at));
-                $('#resultOverview').text(results.overview);
-                
-                // Update entities
-                const entitiesHtml = Object.entries(results.entities)
-                    .map(([category, items]) => {
-                        if (items.length === 0) return '';
-                        return `
-                            <div class="mb-3">
-                                <h6 class="text-muted mb-2">${category}</h6>
-                                <div class="entity-list">
-                                    ${items.map(item => `
-                                        <span class="entity-badge">${item}</span>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `;
-                    })
-                    .join('');
-                
-                $('#resultEntities').html(entitiesHtml || '<p class="text-muted">No entities found</p>');
-                
-                // Show modal
-                $('#resultsModal').modal('show');
-            } else {
-                alert('Failed to load results. Please try again.');
-            }
-        },
-        error: function() {
-            alert('Failed to load results. Please try again.');
-        }
-    });
-}
-
-function formatDate(dateString) {
-    const options = { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-}
 </script>
 {% endblock %} 
